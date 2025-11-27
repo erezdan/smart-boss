@@ -1,0 +1,106 @@
+# ----------------------------
+# Global ignores for Smart-Boss
+# Covers: Node, React, Python, .NET, VSCode, JetBrains, OS, Logs
+# ----------------------------
+
+# === OS Files ===
+Thumbs.db
+.DS_Store
+ehthumbs.db
+Icon?
+Desktop.ini
+
+# === Logs ===
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# === Node / React ===
+node_modules/
+dist/
+build/
+.cache/
+.eslintcache
+*.tsbuildinfo
+*.env.local
+*.env.development.local
+*.env.production.local
+*.env.test.local
+
+# === PWA ===
+.service-worker.js
+workbox-*
+sw.js
+sw-*.js
+
+# === TypeScript ===
+*.tsbuildinfo
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+ENV/
+pip-log.txt
+pip-delete-this-directory.txt
+*.sqlite3
+
+# === .NET ===
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.mdb
+*.pidb
+*.userprefs
+*.dbmdl
+*.pfx
+*.publishsettings
+appsettings.*.json
+
+# === Visual Studio ===
+.vs/
+*.ncrunchsolution
+*.ncrunchproject
+
+# === JetBrains ===
+.idea/
+*.iml
+out/
+
+# === VSCode ===
+.vscode/
+.history/
+
+# === Temp ===
+tmp/
+temp/
+*.tmp
+
+# === Misc ===
+coverage/
+.nyc_output/
+*.pid
+*.seed
+*.cover
+*.orig
+
+# === Local Development Secrets ===
+*.env
+.env.*
+secret.*
+*.pem
+*.key
