@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Filter, X, Search, Calendar } from "lucide-react";
-import { useLanguage } from "./LanguageContext";
+import { useLanguage } from "../hooks/useLanguage";
 
 export default function FilterPanel({ onFilterChange, filters }) {
   const { isRTL, language } = useLanguage();

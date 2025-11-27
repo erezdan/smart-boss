@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Menu, Bot } from "lucide-react";
-import { useLanguage } from "./LanguageContext";
+import { useLanguage } from "../hooks/useLanguage";
 import ChatBubble from "./ChatBubble";
 import VoiceButton from "./VoiceButton";
 import ModalExpand from "./ModalExpand";
-import { mockMessages } from "./mockData";
+import { mockMessages } from "../mocks/mokeData";
 
 export default function ChatScreen({ onMenuClick }) {
   const { language, isRTL } = useLanguage();

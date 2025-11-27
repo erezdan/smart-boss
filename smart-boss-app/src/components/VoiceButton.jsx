@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, Send } from "lucide-react";
-import { useLanguage } from "./LanguageContext";
+import { useLanguage } from "../hooks/useLanguage";
 
 export default function VoiceButton({ onSendMessage }) {
   const [isRecording, setIsRecording] = useState(false);

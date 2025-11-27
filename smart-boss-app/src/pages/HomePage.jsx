@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { LanguageProvider } from "../components/LanguageContext";
+import { LanguageProvider } from "../context/LanguageContext";
 import ChatScreen from "../components/ChatScreen";
 import SideDrawer from "../components/SideDrawer";
 
-export default function BOSS() {
+export default function HomePage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("insights");
 

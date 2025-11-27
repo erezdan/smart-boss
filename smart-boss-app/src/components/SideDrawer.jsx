@@ -12,8 +12,8 @@ import {
   Settings as SettingsIcon,
   Globe,
 } from "lucide-react";
-import { useLanguage } from "./LanguageContext";
-import { drawerData } from "./mockData";
+import { useLanguage } from "../hooks/useLanguage";
+import { drawerData } from "../mocks/mokeData";
 import FilterPanel from "./FilterPanel";
 
 export default function SideDrawer({
