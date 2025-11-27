@@ -1,19 +1,23 @@
 //import { useState } from "react";
-import "./App.css";
+import {
+  Routes,
+  Route,
+  Navigate,
+  //useNavigate,
+  //useLocation,
+} from "react-router-dom";
 
 import HomePage from "./pages/HomePage";
 
 function App() {
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Navigate to="/boss" replace />} />
-        <Route path="/boss" element={<HomePage />} />
+    <Routes>
+      <Route path="/" element={<Navigate to="/home" replace />} />
+      <Route path="/home" element={<HomePage />} />
 
-        {/* 404 fallback */}
-        <Route path="*" element={<div>Page Not Found</div>} />
-      </Routes>
-    </Layout>
+      {/* 404 fallback */}
+      <Route path="*" element={<div>Page Not Found</div>} />
+    </Routes>
   );
 }
 

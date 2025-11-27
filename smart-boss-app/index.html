@@ -1,12 +1,30 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>smart-boss-app</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Smart Boss – AI Assistant</title>
+
+    <!-- ✅ Icons -->
+    <link rel="icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- ✅ PWA Manifest (אפשר לעדכן בהמשך) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- ✅ iOS full-screen support -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Smart Boss" />
+
+    <!-- ✅ Theme colors -->
+    <meta name="theme-color" content="#000000" />
+    <meta name="background-color" content="#000000" />
   </head>
-  <body>
+
+  <body style="margin: 0; background-color: #000000">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       keyframes: {
-        // --- Flyter PWA Install Animation ---
+        // --- Smart Boss PWA Install Animation ---
         slideInUp: {
           "0%": { transform: "translateY(100%)", opacity: "0" },
           "60%": { transform: "translateY(-6%)", opacity: "1" },
