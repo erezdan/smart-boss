@@ -21,32 +21,39 @@ export default function SideDrawer({
   onClose,
   activeSection,
   onSectionChange,
+  desktopMode = false,
 }) {
   const { isRTL, language, toggleLanguage } = useLanguage();
   const data = drawerData[language];
+
   const [alertFilters, setAlertFilters] = useState({});
   const [businessFilters, setBusinessFilters] = useState({});
+
+  // Swipe only for mobile (desktopMode === false)
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
-  // Swipe to close (always left-to-right closes)
   const handleTouchStart = (e) => {
+    if (desktopMode) return;
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
   };
 
   const handleTouchEnd = (e) => {
+    if (desktopMode) return;
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
+
     const deltaX = touchEndX - touchStartX.current;
     const deltaY = touchEndY - touchStartY.current;
 
-    // Swipe left-to-right closes drawer (unified for both LTR/RTL)
+    // Horizontal swipe dominant → close (left-to-right)
     if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 80) {
       onClose();
     }
   };
 
+  // Sections list
   const sections = [
     {
       id: "insights",
@@ -76,7 +83,7 @@ export default function SideDrawer({
     {
       id: "business",
       icon: Briefcase,
-      label: language === "en" ? "Business" : "עסקי",
+      label: language === "en" ? "Business" : "עסק",
     },
     {
       id: "settings",
@@ -105,6 +112,7 @@ export default function SideDrawer({
     return colors[severity] || colors.low;
   };
 
+  // Content per section
   const renderContent = () => {
     switch (activeSection) {
       case "insights":
@@ -391,8 +399,7 @@ export default function SideDrawer({
                 </div>
                 <button
                   onClick={toggleLanguage}
-                  className="px-4 py-2 bg-[#C1A875] text-[#0A0F18] rounded-lg text-sm font-medium
-                    hover:bg-[#B09865] transition-colors"
+                  className="px-4 py-2 bg-[#C1A875] text-[#0A0F18] rounded-lg text-sm font-medium hover:bg-[#B09865] transition-colors"
                 >
                   {language === "en" ? "עברית" : "English"}
                 </button>
@@ -418,6 +425,7 @@ export default function SideDrawer({
                   </span>
                   <span className="text-gray-300">David Cohen</span>
                 </div>
+
                 <div
                   className={`flex ${
                     isRTL ? "flex-row-reverse" : "flex-row"
@@ -428,6 +436,7 @@ export default function SideDrawer({
                   </span>
                   <span className="text-gray-300">Coffee Shop</span>
                 </div>
+
                 <div
                   className={`flex ${
                     isRTL ? "flex-row-reverse" : "flex-row"
@@ -479,6 +488,122 @@ export default function SideDrawer({
     }
   };
 
+  // ---------- RENDER ----------
+
+  // Desktop mode – no fixed, no backdrop, no X
+  if (desktopMode) {
+    return (
+      <div className="h-full w-full bg-[#0A0F18] flex flex-col">
+        {/* === DESKTOP HEADER === */}
+        <div className="relative bg-gradient-to-r from-[#0A0F18] to-[#141B28] px-6 py-4 border-b border-[#C1A875]/20">
+          {/* Container matching drawer width */}
+          <div
+            dir="ltr"
+            className={`
+                        max-w-4xl mx-auto 
+                        flex items-center gap-4
+                        ${isRTL ? "justify-end" : "justify-start"}
+                        flex-row
+                      `}
+          >
+            {isRTL ? (
+              <>
+                {/* Text */}
+                <div className="text-right">
+                  <h1 className="text-xl font-bold text-white tracking-tight">
+                    SMART BOSS
+                  </h1>
+                  <p className="text-xs text-gray-400">
+                    {language === "en"
+                      ? "AI Business Assistant"
+                      : "עוזר עסקי AI"}
+                  </p>
+                </div>
+
+                {/* Logo */}
+                <img
+                  src="/images/smart_boss_logo_only-transperent.png"
+                  alt="Smart Boss Logo"
+                  className="w-8 h-8 object-contain scale-[1.15]"
+                />
+              </>
+            ) : (
+              <>
+                {/* Logo */}
+                <img
+                  src="/images/smart_boss_logo_only-transperent.png"
+                  alt="Smart Boss Logo"
+                  className="w-8 h-8 object-contain scale-[1.15]"
+                />
+
+                {/* Text */}
+                <div className="text-left">
+                  <h1 className="text-xl font-bold text-white tracking-tight">
+                    SMART BOSS
+                  </h1>
+                  <p className="text-xs text-gray-400">
+                    {language === "en"
+                      ? "AI Business Assistant"
+                      : "עוזר עסקי AI"}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* CENTERED SECONDARY TITLE */}
+          <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2">
+            <h2 className="text-lg font-semibold text-white whitespace-nowrap">
+              {sections.find((s) => s.id === activeSection)?.label}
+            </h2>
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 overflow-y-auto px-4 py-5 pb-24">
+          {renderContent()}
+        </div>
+
+        {/* Bottom navigation – centered in desktop */}
+        <div
+          className="relative w-full bg-[#0C0F14] backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.5)]"
+          style={{ paddingBottom: "max(14px, env(safe-area-inset-bottom))" }}
+        >
+          <div
+            className={`h-[56px] overflow-x-auto scrollbar-hide flex items-center gap-1 px-2
+              ${isRTL ? "flex-row-reverse" : "flex-row"} justify-center`}
+          >
+            {sections.map((section) => {
+              const Icon = section.icon;
+              const isActive = activeSection === section.id;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => onSectionChange(section.id)}
+                  className={`relative flex-shrink-0 px-4 py-2.5 flex flex-col items-center justify-center 
+                    transition-all duration-200 rounded-lg
+                    ${isActive ? "bg-[#C7A96A]/15" : "hover:bg-white/5"}`}
+                  title={section.label}
+                >
+                  <Icon
+                    className={`w-[26px] h-[26px] transition-colors duration-200 ${
+                      isActive ? "text-[#C7A96A]" : "text-[#A6A7AA]"
+                    }`}
+                    strokeWidth={1.75}
+                  />
+                  {isActive && (
+                    <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-5 h-[2.5px] bg-[#C7A96A] rounded-full" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mobile mode – overlay, slide-in, X button
   return (
     <>
       {/* Backdrop */}
@@ -489,88 +614,91 @@ export default function SideDrawer({
         />
       )}
 
-      {/* Drawer */}
+      {/* Drawer panel */}
       <div
-        className={`fixed top-0 right-0 h-full w-full md:w-96 bg-[#0A0F18] z-50 
-          transform transition-transform duration-300 ease-out overflow-hidden
-          ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        className={`
+          fixed top-0 bottom-0 ${isRTL ? "left-0" : "right-0"}
+          w-full bg-[#0A0F18] z-50 transform transition-transform duration-300 ease-out
+          ${
+            isOpen
+              ? "translate-x-0"
+              : isRTL
+              ? "-translate-x-full"
+              : "translate-x-full"
+          }
+        `}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="h-full flex flex-row">
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#0A0F18] to-[#141B28] px-5 py-4 border-b border-[#C1A875]/20">
-              <div
-                className={`flex ${
-                  isRTL ? "flex-row-reverse" : "flex-row"
-                } items-center justify-between`}
-              >
-                <div>
-                  <p className="text-xs text-gray-500 mb-0.5">
-                    {language === "en" ? "BOSS Analytics" : "BOSS אנליטיקה"}
-                  </p>
-                  <h2 className="text-lg font-bold text-white">
-                    {sections.find((s) => s.id === activeSection)?.label}
-                  </h2>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center
-                    transition-colors"
-                >
-                  <X className="w-5 h-5 text-white" />
-                </button>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto px-4 py-5 pb-24">
-              {renderContent()}
-            </div>
-
-            {/* Bottom Navigation Ribbon */}
+        <div className="h-full flex flex-col">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-[#0A0F18] to-[#141B28] px-5 py-4 border-b border-[#C1A875]/20">
             <div
-              className="absolute bottom-0 left-0 right-0 bg-[#0C0F14] backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.5)]"
-              style={{
-                paddingBottom: "max(14px, env(safe-area-inset-bottom))",
-              }}
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchEnd={(e) => e.stopPropagation()}
+              className={`flex ${
+                isRTL ? "flex-row-reverse" : "flex-row"
+              } items-center justify-between`}
             >
-              <div
-                className={`h-[56px] overflow-x-auto scrollbar-hide flex items-center justify-start gap-1 px-2
-                  ${isRTL ? "flex-row-reverse" : "flex-row"}`}
-                style={{
-                  scrollBehavior: "smooth",
-                  WebkitOverflowScrolling: "touch",
-                }}
-              >
-                {sections.map((section) => {
-                  const Icon = section.icon;
-                  const isActive = activeSection === section.id;
-                  return (
-                    <button
-                      key={section.id}
-                      onClick={() => onSectionChange(section.id)}
-                      className={`relative flex-shrink-0 px-4 py-2.5 flex flex-col items-center justify-center 
-                        transition-all duration-200 rounded-lg
-                        ${isActive ? "bg-[#C7A96A]/15" : "hover:bg-white/5"}`}
-                      title={section.label}
-                    >
-                      <Icon
-                        className={`w-[26px] h-[26px] transition-colors duration-200
-                          ${isActive ? "text-[#C7A96A]" : "text-[#A6A7AA]"}`}
-                        strokeWidth={1.75}
-                      />
-                      {isActive && (
-                        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-5 h-[2.5px] bg-[#C7A96A] rounded-full" />
-                      )}
-                    </button>
-                  );
-                })}
+              <div>
+                <p className="text-xs text-gray-500 mb-0.5">
+                  {language === "en"
+                    ? "SMART BOSS Analytics"
+                    : "SMART BOSS אנליטיקה"}
+                </p>
+                <h2 className="text-lg font-bold text-white">
+                  {sections.find((s) => s.id === activeSection)?.label}
+                </h2>
               </div>
+
+              <button
+                onClick={onClose}
+                className="w-9 h-9 rounded-full bg:white/10 bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-4 py-5 pb-24">
+            {renderContent()}
+          </div>
+
+          {/* Bottom navigation – scrollable on mobile, left/right aligned */}
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-[#0C0F14] backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.5)]"
+            style={{ paddingBottom: "max(14px, env(safe-area-inset-bottom))" }}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+          >
+            <div
+              className={`h-[56px] overflow-x-auto scrollbar-hide flex items-center gap-1 px-2 ${
+                isRTL ? "flex-row-reverse" : "flex-row"
+              } justify-start`}
+            >
+              {sections.map((section) => {
+                const Icon = section.icon;
+                const isActive = activeSection === section.id;
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => onSectionChange(section.id)}
+                    className={`relative flex-shrink-0 px-4 py-2.5 flex flex-col items-center justify-center 
+                      transition-all duration-200 rounded-lg
+                      ${isActive ? "bg-[#C7A96A]/15" : "hover:bg-white/5"}`}
+                    title={section.label}
+                  >
+                    <Icon
+                      className={`w-[26px] h-[26px] transition-colors duration-200 ${
+                        isActive ? "text-[#C7A96A]" : "text-[#A6A7AA]"
+                      }`}
+                      strokeWidth={1.75}
+                    />
+                    {isActive && (
+                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-5 h-[2.5px] bg-[#C7A96A] rounded-full" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

@@ -1,5 +1,3 @@
-import React from "react";
-import { useLanguage } from "../hooks/useLanguage";
 import {
   AlertCircle,
   TrendingUp,
@@ -7,6 +5,7 @@ import {
   CheckCircle,
   BarChart3,
 } from "lucide-react";
+import { useLanguage } from "../hooks/useLanguage";
 
 export default function ChatBubble({ message, onExpand }) {
   const { isRTL } = useLanguage();
@@ -43,6 +42,16 @@ export default function ChatBubble({ message, onExpand }) {
     }
   };
 
+  // Helpers for WhatsApp-like corners
+  const userBubbleRadius = isRTL
+    ? "rounded-2xl rounded-bl-sm" // user on left in RTL
+    : "rounded-2xl rounded-br-sm"; // user on right in LTR
+
+  const aiBubbleRadius = isRTL
+    ? "rounded-2xl rounded-br-sm" // AI on right in RTL
+    : "rounded-2xl rounded-bl-sm"; // AI on left in LTR
+
+  /* ---------------- USER MESSAGE ---------------- */
   if (isUser) {
     return (
       <div
@@ -51,9 +60,16 @@ export default function ChatBubble({ message, onExpand }) {
         } justify-end mb-4 animate-fade-in`}
       >
         <div className="max-w-[80%] md:max-w-[60%]">
-          <div className="bg-[#0A0F18] text-white rounded-2xl px-5 py-3 shadow-lg">
+          <div
+            className={`
+              bg-[#0A0F18] text-white px-5 py-3 shadow-lg
+              ${userBubbleRadius}
+              md:hover:shadow-xl md:transition-all md:duration-200
+            `}
+          >
             <p className="text-[15px] leading-relaxed">{message.content}</p>
           </div>
+
           <p
             className={`text-xs text-gray-400 mt-1 ${
               isRTL ? "text-right mr-3" : "text-left ml-3"
@@ -66,6 +82,7 @@ export default function ChatBubble({ message, onExpand }) {
     );
   }
 
+  /* ---------------- AI MESSAGE ---------------- */
   if (isAI) {
     return (
       <div
@@ -76,15 +93,16 @@ export default function ChatBubble({ message, onExpand }) {
         <div className="max-w-[85%] md:max-w-[70%]">
           <div
             onClick={() => message.expandable && onExpand(message)}
-            className={`bg-white border border-gray-200 rounded-2xl px-5 py-4 shadow-sm transition-all duration-300 
-              ${message.severity ? getSeverityColor(message.severity) : ""} 
-              ${
-                message.expandable
-                  ? "cursor-pointer hover:shadow-md hover:border-[#C1A875]/40"
-                  : ""
-              }`}
+            className={`
+              bg-white border border-gray-200 px-5 py-4 shadow-sm
+              ${aiBubbleRadius}
+              transition-all duration-200
+              md:hover:shadow-md md:hover:border-[#C1A875]/40
+              ${message.severity ? getSeverityColor(message.severity) : ""}
+              ${message.expandable ? "cursor-pointer" : ""}
+            `}
           >
-            {/* Header with icon and type */}
+            {/* Header + icon */}
             {message.subtype && (
               <div
                 className={`flex ${
@@ -98,7 +116,7 @@ export default function ChatBubble({ message, onExpand }) {
               </div>
             )}
 
-            {/* Image if present */}
+            {/* Image block */}
             {message.image && (
               <div className="mb-3 rounded-xl overflow-hidden">
                 <img
@@ -109,7 +127,7 @@ export default function ChatBubble({ message, onExpand }) {
               </div>
             )}
 
-            {/* Content */}
+            {/* Main content */}
             <p className="text-[15px] leading-relaxed text-gray-800">
               {message.content}
             </p>
@@ -124,7 +142,7 @@ export default function ChatBubble({ message, onExpand }) {
               </div>
             )}
 
-            {/* Expandable indicator */}
+            {/* Expandable footer */}
             {message.expandable && (
               <div
                 className={`mt-3 pt-3 border-t border-gray-100 flex ${
@@ -138,6 +156,7 @@ export default function ChatBubble({ message, onExpand }) {
               </div>
             )}
           </div>
+
           <p
             className={`text-xs text-gray-400 mt-1 ${
               isRTL ? "text-right mr-3" : "text-left ml-3"

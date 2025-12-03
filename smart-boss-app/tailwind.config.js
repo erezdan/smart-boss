@@ -1,6 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+
+  // ⭐ Added for Scoped Dark Mode
+  darkMode: ["class", '[data-theme="dark"]'],
+
   theme: {
     extend: {
       keyframes: {
