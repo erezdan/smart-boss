@@ -15,6 +15,7 @@ import {
 import { useLanguage } from "../hooks/useLanguage";
 import { drawerData } from "../mocks/mokeData";
 import FilterPanel from "./FilterPanel";
+import { APP_VERSION } from "../version";
 
 export default function SideDrawer({
   isOpen,
@@ -479,6 +480,12 @@ export default function SideDrawer({
                   </div>
                 ))}
               </div>
+            </div>
+            {/* App Version */}
+            <div className="w-full text-center mt-8 mb-2">
+              <span className="mt-20 text-center text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
+                {"App Version"}: {APP_VERSION}
+              </span>
             </div>
           </div>
         );
