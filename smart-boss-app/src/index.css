@@ -8,7 +8,7 @@
 /* Default font for the body */
 body {
   font-family: "Inter", sans-serif;
-  font-weight: 400; /* regular text */
+  font-weight: 400;
 }
 
 /* Headings, labels and controls */
@@ -22,17 +22,16 @@ label,
 button,
 input,
 select {
-  font-weight: 500; /* a bit more bold */
+  font-weight: 500;
 }
 
-/* Hide scrollbars but keep scrolling */
+/* Hide scrollbars */
 .scrollbar-hide {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-
 .scrollbar-hide::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
 }
 
 @keyframes fadeSlide {
@@ -45,7 +44,6 @@ select {
     transform: translateY(0);
   }
 }
-
 .animate-fadeSlide {
   animation: fadeSlide 0.25s ease-out;
 }
@@ -58,11 +56,9 @@ select {
 [dir="rtl"] .rdp {
   direction: rtl;
 }
-
 [dir="rtl"] .rdp-months {
   flex-direction: row-reverse;
 }
-
 [dir="rtl"] .rdp-nav {
   flex-direction: row-reverse;
 }

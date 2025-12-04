@@ -1,0 +1,3 @@
+smart boss app deplyment
+========================
+firebase deploy --only hosting:smartboss-app

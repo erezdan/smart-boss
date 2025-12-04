@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "smart-boss-a771e"
-  }
+  },
+  "targets": {
+    "smart-boss-a771e": {
+      "hosting": {
+        "smartboss-app": [
+          "smart-boss-a771e"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

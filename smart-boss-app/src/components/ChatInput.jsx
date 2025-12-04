@@ -51,7 +51,7 @@ export default function ChatInput({ onSendMessage }) {
     <div
       className={`flex ${
         isRTL ? "flex-row-reverse" : "flex-row"
-      } items-end gap-3 w-full`}
+      } items-end gap-3 w-full mb-2`}
     >
       {/* Textarea */}
       <div className="flex-1 relative">

@@ -14,11 +14,18 @@ export default function ChatScreen({ onMenuClick, desktopMode = false }) {
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
+  const initialRenderRef = useRef(true);
+
   useEffect(() => {
     setMessages(mockMessages[language]);
   }, [language]);
 
   useEffect(() => {
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false;
+      return; // Skip scrolling on initial render
+    }
+
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -102,7 +109,7 @@ export default function ChatScreen({ onMenuClick, desktopMode = false }) {
 
   return (
     <div
-      className="h-full flex flex-col bg-[#F7F7F9] relative"
+      className="h-screen flex flex-col bg-[#F7F7F9] relative"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -176,7 +183,7 @@ export default function ChatScreen({ onMenuClick, desktopMode = false }) {
       )}
 
       {/* CHAT AREA */}
-      <div className="flex-1 overflow-y-auto px-0 md:px-4 py-6 pb-6">
+      <div className="flex-1 overflow-y-auto px-0 md:px-4 py-6 pb-28">
         <div className="w-full flex justify-center">
           <div
             className={`
@@ -222,12 +229,17 @@ export default function ChatScreen({ onMenuClick, desktopMode = false }) {
       {/* Input Area */}
       <div
         className={`
-    w-full
+    ${desktopMode ? "sticky" : "fixed"}
+    bottom-0 
+    left-0 
+    right-0 
     bg-[#ECECEC]
     py-4 md:py-6
     px-4 md:px-8
     flex
     justify-center md:justify-start
+    ${desktopMode ? "" : "pb-[env(safe-area-inset-bottom)]"}
+    z-50
   `}
       >
         <div

@@ -45,4 +45,7 @@ export default defineConfig({
       includeAssets: ["/apple-touch-icon.png"],
     }),
   ],
+  server: {
+    port: 5174,
+  },
 });
