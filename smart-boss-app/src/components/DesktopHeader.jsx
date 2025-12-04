@@ -2,7 +2,7 @@ import React from "react";
 import { useLanguage } from "../hooks/useLanguage";
 
 export default function DesktopHeader() {
-  const { language, isRTL, toggleLanguage } = useLanguage();
+  const { t, isRTL, toggleLanguage } = useLanguage();
 
   return (
     <div
@@ -35,7 +35,7 @@ export default function DesktopHeader() {
         onClick={toggleLanguage}
         className="px-4 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition"
       >
-        {language === "en" ? "עברית" : "English"}
+        {t("languageToggle")}
       </button>
     </div>
   );

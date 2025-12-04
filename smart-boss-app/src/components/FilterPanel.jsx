@@ -3,7 +3,7 @@ import { Filter, X, Search, Calendar } from "lucide-react";
 import { useLanguage } from "../hooks/useLanguage";
 
 export default function FilterPanel({ onFilterChange, filters }) {
-  const { isRTL, language } = useLanguage();
+  const { isRTL, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [localFilters, setLocalFilters] = useState(
     filters || {
@@ -50,7 +50,7 @@ export default function FilterPanel({ onFilterChange, filters }) {
           }`}
       >
         <Filter className="w-4 h-4" />
-        <span>{language === "en" ? "Filters" : "סינון"}</span>
+        <span>{t("filters")}</span>
         {hasActiveFilters && (
           <span className="w-2 h-2 rounded-full bg-[#0A0F18]" />
         )}
@@ -65,7 +65,7 @@ export default function FilterPanel({ onFilterChange, filters }) {
                 isRTL ? "text-right" : "text-left"
               }`}
             >
-              {language === "en" ? "Search" : "חיפוש"}
+              {t("search")}
             </label>
             <div className="relative">
               <Search
@@ -82,9 +82,7 @@ export default function FilterPanel({ onFilterChange, filters }) {
                     searchText: e.target.value,
                   })
                 }
-                placeholder={
-                  language === "en" ? "Search alerts..." : "...חיפוש התראות"
-                }
+                placeholder={t("searchAlerts")}
                 className={`w-full bg-[#141B28] border border-[#C1A875]/20 rounded-lg py-2 
                   ${isRTL ? "pr-10 pl-3 text-right" : "pl-10 pr-3 text-left"}
                   text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#C1A875]/50`}
@@ -100,7 +98,7 @@ export default function FilterPanel({ onFilterChange, filters }) {
                   isRTL ? "text-right" : "text-left"
                 }`}
               >
-                {language === "en" ? "From Date" : "מתאריך"}
+                {t("fromDate")}
               </label>
               <input
                 type="date"
@@ -120,7 +118,7 @@ export default function FilterPanel({ onFilterChange, filters }) {
                   isRTL ? "text-right" : "text-left"
                 }`}
               >
-                {language === "en" ? "To Date" : "עד תאריך"}
+                {t("toDate")}
               </label>
               <input
                 type="date"
@@ -144,7 +142,7 @@ export default function FilterPanel({ onFilterChange, filters }) {
                   isRTL ? "text-right" : "text-left"
                 }`}
               >
-                {language === "en" ? "From Time" : "משעה"}
+                {t("fromTime")}
               </label>
               <input
                 type="time"
@@ -164,7 +162,7 @@ export default function FilterPanel({ onFilterChange, filters }) {
                   isRTL ? "text-right" : "text-left"
                 }`}
               >
-                {language === "en" ? "To Time" : "עד שעה"}
+                {t("toTime")}
               </label>
               <input
                 type="time"
@@ -189,14 +187,14 @@ export default function FilterPanel({ onFilterChange, filters }) {
               className="flex-1 py-2 bg-[#C1A875] text-[#0A0F18] rounded-lg text-sm font-medium
                 hover:bg-[#B09865] transition-colors"
             >
-              {language === "en" ? "Apply" : "החל"}
+              {t("apply")}
             </button>
             <button
               onClick={handleClear}
               className="px-4 py-2 bg-white/5 text-gray-400 rounded-lg text-sm font-medium
                 hover:bg-white/10 transition-colors"
             >
-              {language === "en" ? "Clear" : "נקה"}
+              {t("clear")}
             </button>
           </div>
         </div>

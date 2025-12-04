@@ -11,45 +11,45 @@ import {
 import { useLanguage } from "../hooks/useLanguage";
 
 export default function DesktopSidebar({ activeSection, onSectionChange }) {
-  const { language, isRTL } = useLanguage();
+  const { isRTL, t } = useLanguage();
 
   const sections = [
     {
       id: "insights",
       icon: TrendingUp,
-      label: language === "en" ? "Insights" : "תובנות",
+      label: t("insights"),
     },
     {
       id: "alerts",
       icon: AlertTriangle,
-      label: language === "en" ? "Alerts" : "התראות",
+      label: t("alerts"),
     },
-    { id: "vision", icon: Camera, label: "Vision AI" },
+    { id: "vision", icon: Camera, label: t("visionAI") },
     {
       id: "workers",
       icon: Users,
-      label: language === "en" ? "Workers" : "עובדים",
+      label: t("workers"),
     },
     {
       id: "queue",
       icon: BarChart3,
-      label: language === "en" ? "Queue" : "תור",
+      label: t("queue"),
     },
     {
       id: "business",
       icon: Briefcase,
-      label: language === "en" ? "Business" : "עסקי",
+      label: t("business"),
     },
     {
       id: "settings",
       icon: Settings,
-      label: language === "en" ? "Settings" : "הגדרות",
+      label: t("settings"),
     },
   ];
 
   return (
     <div className="hidden md:flex flex-col w-72 h-full bg-[#0A0F18] border-r border-[#C1A875]/20">
-      {/* ===== TOP BAR (דסקטופ בלבד, רק מעל המגירה) ===== */}
+      {/* ===== TOP BAR desktop only above the drawer ===== */}
       <div
         className={`
           w-full h-[70px]

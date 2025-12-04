@@ -1,4 +1,5 @@
 import React, { createContext, useState } from "react";
+import translations from "./translations";
 
 const LanguageContext = createContext();
 
@@ -11,8 +12,12 @@ export const LanguageProvider = ({ children }) => {
 
   const isRTL = language === "he";
 
+  const t = (key) => {
+    return translations[key]?.[language] || key;
+  };
+
   return (
-    <LanguageContext.Provider value={{ language, toggleLanguage, isRTL }}>
+    <LanguageContext.Provider value={{ language, toggleLanguage, isRTL, t }}>
       <div
         dir={isRTL ? "rtl" : "ltr"}
         className={`min-h-screen ${isRTL ? "font-hebrew" : "font-inter"}`}

@@ -24,7 +24,7 @@ export default function SideDrawer({
   onSectionChange,
   desktopMode = false,
 }) {
-  const { isRTL, language, toggleLanguage } = useLanguage();
+  const { isRTL, language, toggleLanguage, t } = useLanguage();
   const data = drawerData[language];
 
   const [alertFilters, setAlertFilters] = useState({});
@@ -59,37 +59,37 @@ export default function SideDrawer({
     {
       id: "insights",
       icon: TrendingUp,
-      label: language === "en" ? "Daily Insights" : "תובנות יומיות",
+      label: t("dailyInsights"),
     },
     {
       id: "alerts",
       icon: AlertTriangle,
-      label: language === "en" ? "Alerts" : "התראות",
+      label: t("alerts"),
     },
     {
       id: "vision",
       icon: Camera,
-      label: language === "en" ? "Vision AI" : "Vision AI",
+      label: t("visionAI"),
     },
     {
       id: "workers",
       icon: Users,
-      label: language === "en" ? "Workers" : "עובדים",
+      label: t("workers"),
     },
     {
       id: "queue",
       icon: BarChart3,
-      label: language === "en" ? "Queue Metrics" : "מדדי תור",
+      label: t("queueMetrics"),
     },
     {
       id: "business",
       icon: Briefcase,
-      label: language === "en" ? "Business" : "עסק",
+      label: t("business"),
     },
     {
       id: "settings",
       icon: SettingsIcon,
-      label: language === "en" ? "Settings" : "הגדרות",
+      label: t("settings"),
     },
   ];
 
@@ -274,7 +274,7 @@ export default function SideDrawer({
                       isRTL ? "flex-row-reverse" : "flex-row"
                     } justify-between text-gray-400`}
                   >
-                    <span>{language === "en" ? "Location" : "מיקום"}</span>
+                    <span>{t("location")}</span>
                     <span className="text-gray-300">{worker.location}</span>
                   </div>
                   <div
@@ -282,7 +282,7 @@ export default function SideDrawer({
                       isRTL ? "flex-row-reverse" : "flex-row"
                     } justify-between text-gray-400`}
                   >
-                    <span>{language === "en" ? "Shift" : "משמרת"}</span>
+                    <span>{t("shift")}</span>
                     <span className="text-gray-300">{worker.shift}</span>
                   </div>
                   <p
@@ -320,17 +320,13 @@ export default function SideDrawer({
                     } items-center gap-4`}
                   >
                     <div className="text-right">
-                      <p className="text-xs text-gray-400">
-                        {language === "en" ? "Wait" : "המתנה"}
-                      </p>
+                      <p className="text-xs text-gray-400">{t("wait")}</p>
                       <p className="text-sm font-semibold text-amber-400">
                         {item.wait}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-gray-400">
-                        {language === "en" ? "Customers" : "לקוחות"}
-                      </p>
+                      <p className="text-xs text-gray-400">{t("customers")}</p>
                       <p className="text-sm font-semibold text-blue-400">
                         {item.customers}
                       </p>
@@ -395,14 +391,14 @@ export default function SideDrawer({
                 >
                   <Globe className="w-5 h-5 text-[#C1A875]" />
                   <span className="text-sm font-medium text-white">
-                    {language === "en" ? "Language" : "שפה"}
+                    {t("language")}
                   </span>
                 </div>
                 <button
                   onClick={toggleLanguage}
                   className="px-4 py-2 bg-[#C1A875] text-[#0A0F18] rounded-lg text-sm font-medium hover:bg-[#B09865] transition-colors"
                 >
-                  {language === "en" ? "עברית" : "English"}
+                  {t("languageToggle")}
                 </button>
               </div>
             </div>
@@ -413,7 +409,7 @@ export default function SideDrawer({
                   isRTL ? "text-right" : "text-left"
                 }`}
               >
-                {language === "en" ? "User Profile" : "פרופיל משתמש"}
+                {t("userProfile")}
               </h4>
               <div className="space-y-2 text-xs">
                 <div
@@ -421,9 +417,7 @@ export default function SideDrawer({
                     isRTL ? "flex-row-reverse" : "flex-row"
                   } justify-between`}
                 >
-                  <span className="text-gray-400">
-                    {language === "en" ? "Name" : "שם"}
-                  </span>
+                  <span className="text-gray-400">{t("name")}</span>
                   <span className="text-gray-300">David Cohen</span>
                 </div>
 
@@ -432,9 +426,7 @@ export default function SideDrawer({
                     isRTL ? "flex-row-reverse" : "flex-row"
                   } justify-between`}
                 >
-                  <span className="text-gray-400">
-                    {language === "en" ? "Business" : "עסק"}
-                  </span>
+                  <span className="text-gray-400">{t("business")}</span>
                   <span className="text-gray-300">Coffee Shop</span>
                 </div>
 
@@ -443,12 +435,8 @@ export default function SideDrawer({
                     isRTL ? "flex-row-reverse" : "flex-row"
                   } justify-between`}
                 >
-                  <span className="text-gray-400">
-                    {language === "en" ? "Role" : "תפקיד"}
-                  </span>
-                  <span className="text-gray-300">
-                    {language === "en" ? "Owner" : "בעלים"}
-                  </span>
+                  <span className="text-gray-400">{t("role")}</span>
+                  <span className="text-gray-300">{t("owner")}</span>
                 </div>
               </div>
             </div>
@@ -459,7 +447,7 @@ export default function SideDrawer({
                   isRTL ? "text-right" : "text-left"
                 }`}
               >
-                {language === "en" ? "Notifications" : "התראות"}
+                {t("notifications")}
               </h4>
               <div className="space-y-3">
                 {[
@@ -521,9 +509,7 @@ export default function SideDrawer({
                     SMART BOSS
                   </h1>
                   <p className="text-xs text-gray-400">
-                    {language === "en"
-                      ? "AI Business Assistant"
-                      : "עוזר עסקי AI"}
+                    {t("aiBusinessAssistant")}
                   </p>
                 </div>
 
@@ -549,9 +535,7 @@ export default function SideDrawer({
                     SMART BOSS
                   </h1>
                   <p className="text-xs text-gray-400">
-                    {language === "en"
-                      ? "AI Business Assistant"
-                      : "עוזר עסקי AI"}
+                    {t("aiBusinessAssistant")}
                   </p>
                 </div>
               </>
@@ -647,9 +631,7 @@ export default function SideDrawer({
             >
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">
-                  {language === "en"
-                    ? "SMART BOSS Analytics"
-                    : "SMART BOSS אנליטיקה"}
+                  {t("smartBossAnalytics")}
                 </p>
                 <h2 className="text-lg font-bold text-white">
                   {sections.find((s) => s.id === activeSection)?.label}

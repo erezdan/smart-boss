@@ -3,7 +3,7 @@ import { X, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { useLanguage } from "../hooks/useLanguage";
 
 export default function ModalExpand({ message, onClose }) {
-  const { isRTL, language } = useLanguage();
+  const { isRTL, t } = useLanguage();
 
   if (!message?.expandable) return null;
 
@@ -69,25 +69,19 @@ export default function ModalExpand({ message, onClose }) {
           {message.expandable.metrics && (
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="bg-gray-50 rounded-xl p-4 text-center">
-                <p className="text-xs text-gray-500 mb-1">
-                  {language === "en" ? "Current" : "נוכחי"}
-                </p>
+                <p className="text-xs text-gray-500 mb-1">{t("current")}</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {message.expandable.metrics.current}
                 </p>
               </div>
               <div className="bg-gray-50 rounded-xl p-4 text-center">
-                <p className="text-xs text-gray-500 mb-1">
-                  {language === "en" ? "Average" : "ממוצע"}
-                </p>
+                <p className="text-xs text-gray-500 mb-1">{t("average")}</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {message.expandable.metrics.average}
                 </p>
               </div>
               <div className="bg-gray-50 rounded-xl p-4 text-center flex flex-col items-center justify-center">
-                <p className="text-xs text-gray-500 mb-2">
-                  {language === "en" ? "Trend" : "מגמה"}
-                </p>
+                <p className="text-xs text-gray-500 mb-2">{t("trend")}</p>
                 {getTrendIcon(message.expandable.metrics.trend)}
               </div>
             </div>
@@ -101,7 +95,7 @@ export default function ModalExpand({ message, onClose }) {
                   isRTL ? "text-right" : "text-left"
                 }`}
               >
-                {language === "en" ? "Timeline" : "ציר זמן"}
+                {t("timeline")}
               </h4>
               <div className="space-y-2">
                 {message.expandable.timeline.map((item, index) => (
@@ -127,7 +121,7 @@ export default function ModalExpand({ message, onClose }) {
                   isRTL ? "text-right" : "text-left"
                 }`}
               >
-                {language === "en" ? "Breakdown" : "פירוט"}
+                {t("breakdown")}
               </h4>
               <div className="grid grid-cols-3 gap-3">
                 {Object.entries(message.expandable.breakdown).map(
@@ -155,7 +149,7 @@ export default function ModalExpand({ message, onClose }) {
                   isRTL ? "text-right" : "text-left"
                 }`}
               >
-                {language === "en" ? "💡 Recommendation" : "💡 המלצה"}
+                {t("recommendation")}
               </h4>
               <p
                 className={`text-sm text-amber-700 ${
@@ -170,9 +164,7 @@ export default function ModalExpand({ message, onClose }) {
           {/* Assigned To */}
           {message.expandable.assignedTo && (
             <div className="mt-4 flex items-center gap-2">
-              <span className="text-xs text-gray-500">
-                {language === "en" ? "Assigned to:" : "הוקצה ל:"}
-              </span>
+              <span className="text-xs text-gray-500">{t("assignedTo")}</span>
               <span className="text-sm font-medium text-gray-700">
                 {message.expandable.assignedTo}
               </span>
@@ -187,7 +179,7 @@ export default function ModalExpand({ message, onClose }) {
             className="px-6 py-2.5 bg-[#0A0F18] text-white rounded-xl font-medium hover:bg-[#141B28] 
               transition-colors"
           >
-            {language === "en" ? "Close" : "סגור"}
+            {t("close")}
           </button>
         </div>
       </div>

@@ -7,7 +7,7 @@ export default function ChatInput({ onSendMessage }) {
   const [textInput, setTextInput] = useState("");
   const [showRipple, setShowRipple] = useState(false);
   const textareaRef = useRef(null);
-  const { isRTL, language } = useLanguage();
+  const { isRTL, t } = useLanguage();
 
   // Auto-resize
   useEffect(() => {
@@ -29,10 +29,7 @@ export default function ChatInput({ onSendMessage }) {
     // mock simulation
     if (!isRecording) {
       setTimeout(() => {
-        const mock =
-          language === "en"
-            ? "Show me worker performance today"
-            : "הצג לי ביצועי עובדים היום";
+        const mock = t("showMeWorkerPerformanceToday");
 
         onSendMessage(mock);
         setIsRecording(false);
@@ -59,7 +56,7 @@ export default function ChatInput({ onSendMessage }) {
           ref={textareaRef}
           value={textInput}
           onChange={(e) => setTextInput(e.target.value)}
-          placeholder={language === "en" ? "Tap to type..." : "הקש להקליד..."}
+          placeholder={t("tapToType")}
           className={`
             w-full 
             px-4 py-3 

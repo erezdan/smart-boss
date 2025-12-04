@@ -7,7 +7,7 @@ import ModalExpand from "./ModalExpand";
 import { mockMessages } from "../mocks/mokeData";
 
 export default function ChatScreen({ onMenuClick, desktopMode = false }) {
-  const { language, isRTL } = useLanguage();
+  const { language, isRTL, t } = useLanguage();
   const [messages, setMessages] = useState(mockMessages[language]);
   const [expandedMessage, setExpandedMessage] = useState(null);
   const chatEndRef = useRef(null);
@@ -83,23 +83,14 @@ export default function ChatScreen({ onMenuClick, desktopMode = false }) {
         id: Date.now() + 1,
         type: "ai",
         subtype: "insight",
-        content:
-          language === "en"
-            ? "Analyzing your request... Here are the worker performance metrics for today."
-            : "מנתח את בקשתך... הנה מדדי הביצועים של העובדים להיום.",
+        content: t("analyzingYourRequest"),
         timestamp: new Date().toLocaleTimeString(
           language === "en" ? "en-US" : "he-IL",
           { hour: "2-digit", minute: "2-digit" }
         ),
         expandable: {
-          title:
-            language === "en"
-              ? "Worker Performance Today"
-              : "ביצועי עובדים היום",
-          details:
-            language === "en"
-              ? "Overall performance is good. Sarah leading in efficiency, Danny needs attention."
-              : "ביצועים כלליים טובים. שרה מובילה ביעילות, דני זקוק לתשומת לב.",
+          title: t("workerPerformanceToday"),
+          details: t("workerPerformanceDetails"),
           metrics: { current: 87, average: 82, trend: "up" },
         },
       };
@@ -134,9 +125,7 @@ export default function ChatScreen({ onMenuClick, desktopMode = false }) {
                       SMART BOSS
                     </h1>
                     <p className="text-xs text-gray-400">
-                      {language === "en"
-                        ? "AI Business Assistant"
-                        : "עוזר עסקי AI"}
+                      {t("aiBusinessAssistant")}
                     </p>
                   </div>
 
@@ -162,9 +151,7 @@ export default function ChatScreen({ onMenuClick, desktopMode = false }) {
                       SMART BOSS
                     </h1>
                     <p className="text-xs text-gray-400">
-                      {language === "en"
-                        ? "AI Business Assistant"
-                        : "עוזר עסקי AI"}
+                      {t("aiBusinessAssistant")}
                     </p>
                   </div>
                 </>
@@ -201,15 +188,11 @@ export default function ChatScreen({ onMenuClick, desktopMode = false }) {
               </div>
 
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                {language === "en"
-                  ? "Welcome to SMART BOSS"
-                  : "ברוכים הבאים ל- SMART BOSS"}
+                {t("welcomeTitle")}
               </h2>
 
               <p className="text-sm text-gray-500 max-w-md mx-auto">
-                {language === "en"
-                  ? "Your AI-powered business assistant is ready."
-                  : "העוזר העסקי המונע על ידי AI שלך מוכן."}
+                {t("analyzingYourRequestShort")}
               </p>
             </div>
 

@@ -8,7 +8,7 @@ import {
 import { useLanguage } from "../hooks/useLanguage";
 
 export default function ChatBubble({ message, onExpand }) {
-  const { isRTL } = useLanguage();
+  const { isRTL, t } = useLanguage();
   const isUser = message.type === "user";
   const isAI = message.type === "ai";
 
@@ -137,7 +137,7 @@ export default function ChatBubble({ message, onExpand }) {
               <div className="mt-3 pt-3 border-t border-gray-100">
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <BarChart3 className="w-3 h-3" />
-                  <span>Tap to view detailed chart</span>
+                  <span>{t("tapToViewDetailedChart")}</span>
                 </div>
               </div>
             )}
@@ -150,7 +150,7 @@ export default function ChatBubble({ message, onExpand }) {
                 } items-center justify-between`}
               >
                 <span className="text-xs text-[#C1A875] font-medium">
-                  {isRTL ? "הקש לפרטים נוספים" : "Tap for more details"}
+                  {t("tapForMoreDetails")}
                 </span>
                 <div className="w-1.5 h-1.5 rounded-full bg-[#C1A875] animate-pulse" />
               </div>
