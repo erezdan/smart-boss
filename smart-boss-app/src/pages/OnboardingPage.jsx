@@ -1,9 +1,9 @@
-import AppLayout from "../components/AppLayout";
+import Layout from "../components/layouts/Layout";
 
 export default function OnboardingPage() {
   return (
-    <AppLayout>
+    <Layout>
       <OnboardingWizard />
-    </AppLayout>
+    </Layout>
   );
 }

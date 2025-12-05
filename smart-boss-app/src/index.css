@@ -1,39 +1,80 @@
-/* Import fonts must come first */
+/* ================================
+   GLOBAL FONTS (MUST COME FIRST)
+=================================== */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;500;600&display=swap");
 
+/* ================================
+   TAILWIND BASE
+=================================== */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Default font for the body */
+/* ================================
+   GLOBAL RESET
+=================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ================================
+   GLOBAL BODY SETTINGS
+=================================== */
 body {
   font-family: "Inter", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   font-weight: 400;
+  overflow-x: hidden; /* prevent horizontal scroll */
 }
 
-/* Headings, labels and controls */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-label,
-button,
-input,
-select {
-  font-weight: 500;
+/* ================================
+   RTL / LTR SUPPORT
+   (Used in ChatScreen + SideDrawer)
+=================================== */
+.direction-rtl {
+  direction: rtl;
 }
 
-/* Hide scrollbars */
+.direction-ltr {
+  direction: ltr;
+}
+
+/* ================================
+   OPTIONAL — CUSTOM SCROLLBARS
+   (Remove if unwanted)
+=================================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(193, 168, 117, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(193, 168, 117, 0.5);
+}
+
+/* ================================
+   HIDE SCROLLBARS UTILITY
+=================================== */
 .scrollbar-hide {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
+/* ================================
+   ANIMATIONS (Used by components)
+=================================== */
 @keyframes fadeSlide {
   0% {
     opacity: 0;
@@ -44,15 +85,21 @@ select {
     transform: translateY(0);
   }
 }
+
 .animate-fadeSlide {
   animation: fadeSlide 0.25s ease-out;
 }
 
+/* ================================
+   UTILITY FOR RESPONSIVE TEXT
+=================================== */
 .auto-shrink {
   font-size: clamp(10px, 2vw, 14px);
 }
 
-/* Calendar RTL fix */
+/* ================================
+   CALENDAR RTL FIXES
+=================================== */
 [dir="rtl"] .rdp {
   direction: rtl;
 }
@@ -61,10 +108,4 @@ select {
 }
 [dir="rtl"] .rdp-nav {
   flex-direction: row-reverse;
-}
-
-/* Prevent any horizontal scroll on mobile or RTL */
-html,
-body {
-  overflow-x: hidden;
 }

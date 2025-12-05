@@ -19,58 +19,60 @@ export default function Layout() {
   }, []);
 
   return (
-    <div
-      className={`
+    <div className={isRTL ? "direction-rtl" : "direction-ltr"}>
+      <div
+        className={`
         h-screen w-screen overflow-hidden bg-[#F7F7F9]
         flex
         ${isDesktop ? (isRTL ? "flex-row-reverse" : "flex-row") : "flex-col"}
       `}
-    >
-      {/* DESKTOP MODE */}
-      {isDesktop && (
-        <>
-          {/* Drawer column */}
-          <div
-            className={`
+      >
+        {/* DESKTOP MODE */}
+        {isDesktop && (
+          <>
+            {/* Drawer column */}
+            <div
+              className={`
               w-[30vw] min-w-[420px] h-full bg-[#0A0F18]
               ${isRTL ? "border-r" : "border-l"} border-black/20
             `}
-          >
+            >
+              <SideDrawer
+                isOpen={true}
+                onClose={() => {}}
+                activeSection={activeSection}
+                onSectionChange={setActiveSection}
+                desktopMode={true}
+              />
+            </div>
+
+            {/* Chat column */}
+            <div className="flex-1 h-full">
+              <ChatScreen onMenuClick={() => {}} desktopMode={true} />
+            </div>
+          </>
+        )}
+
+        {/* MOBILE MODE */}
+        {!isDesktop && (
+          <>
+            <div className="flex-1 h-full">
+              <ChatScreen
+                onMenuClick={() => setIsDrawerOpen(true)}
+                desktopMode={false}
+              />
+            </div>
+
             <SideDrawer
-              isOpen={true}
-              onClose={() => {}}
+              isOpen={isDrawerOpen}
+              onClose={() => setIsDrawerOpen(false)}
               activeSection={activeSection}
               onSectionChange={setActiveSection}
-              desktopMode={true}
-            />
-          </div>
-
-          {/* Chat column */}
-          <div className="flex-1 h-full">
-            <ChatScreen onMenuClick={() => {}} desktopMode={true} />
-          </div>
-        </>
-      )}
-
-      {/* MOBILE MODE */}
-      {!isDesktop && (
-        <>
-          <div className="flex-1 h-full">
-            <ChatScreen
-              onMenuClick={() => setIsDrawerOpen(true)}
               desktopMode={false}
             />
-          </div>
-
-          <SideDrawer
-            isOpen={isDrawerOpen}
-            onClose={() => setIsDrawerOpen(false)}
-            activeSection={activeSection}
-            onSectionChange={setActiveSection}
-            desktopMode={false}
-          />
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
