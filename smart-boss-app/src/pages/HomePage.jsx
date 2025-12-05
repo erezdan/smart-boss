@@ -1,11 +1,11 @@
 import React from "react";
 import { LanguageProvider } from "../context/LanguageContext";
-import HomeShell from "../components/HomeShell";
+import Layout from "../components/layouts/Layout";
 
 export default function HomePage() {
   return (
     <LanguageProvider>
-      <HomeShell />
+      <Layout />
 
       <style jsx global>{`
         @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;500;600&display=swap");

@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { useLanguage } from "../hooks/useLanguage";
-import ChatScreen from "../components/ChatScreen";
-import SideDrawer from "../components/SideDrawer";
+import { useLanguage } from "../../hooks/useLanguage";
+import ChatScreen from "../ChatScreen";
+import SideDrawer from "../SideDrawer";
 
-export default function HomeShell() {
+export default function Layout() {
   const { isRTL } = useLanguage();
+
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("insights");
-
   const [isDesktop, setIsDesktop] = useState(false);
 
+  // Detect desktop/mobile
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= 1024);
     check();
@@ -20,20 +21,20 @@ export default function HomeShell() {
   return (
     <div
       className={`
-      h-screen w-screen overflow-hidden bg-[#F7F7F9]
-      flex
-      ${isDesktop ? (isRTL ? "flex-row-reverse" : "flex-row") : "flex-col"}
-    `}
+        h-screen w-screen overflow-hidden bg-[#F7F7F9]
+        flex
+        ${isDesktop ? (isRTL ? "flex-row-reverse" : "flex-row") : "flex-col"}
+      `}
     >
       {/* DESKTOP MODE */}
       {isDesktop && (
         <>
-          {/* Drawer column – 40% width, min 420px */}
+          {/* Drawer column */}
           <div
             className={`
-            w-[30vw] min-w-[420px] h-full bg-[#0A0F18]
-            ${isRTL ? "border-r" : "border-l"} border-black/20
-          `}
+              w-[30vw] min-w-[420px] h-full bg-[#0A0F18]
+              ${isRTL ? "border-r" : "border-l"} border-black/20
+            `}
           >
             <SideDrawer
               isOpen={true}
