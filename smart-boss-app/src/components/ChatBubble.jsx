@@ -60,7 +60,7 @@ export default function ChatBubble({ message, onExpand }) {
     justify-end mb-4 animate-fade-in
   `}
       >
-        <div className="w-fit max-w-full">
+        <div className="w-fit max-w-[95%] md:max-w-[75%]">
           <div
             className={`
         bg-[#0A0F18] text-white px-5 py-3 shadow-lg
@@ -92,7 +92,7 @@ export default function ChatBubble({ message, onExpand }) {
           isRTL ? "flex-row-reverse" : "flex-row"
         } justify-start mb-4 animate-fade-in`}
       >
-        <div className="max-w-[85%] md:max-w-[70%]">
+        <div className="max-w-[95%] md:max-w-[75%]">
           <div
             onClick={() => message.expandable && onExpand(message)}
             className={`
