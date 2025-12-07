@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Menu, Bot } from "lucide-react";
+import { Menu, Bot, X } from "lucide-react";
 import { useLanguage } from "../hooks/useLanguage";
 import ChatBubble from "./ChatBubble";
 import ChatInput from "./ChatInput";
@@ -100,7 +100,9 @@ export default function ChatScreen({ onMenuClick, desktopMode = false }) {
 
   return (
     <div
-      className="h-screen flex flex-col bg-[#F7F7F9] relative"
+      className={`${
+        desktopMode ? "h-full" : "h-screen"
+      } flex flex-col bg-[#F7F7F9] relative`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -161,7 +163,7 @@ export default function ChatScreen({ onMenuClick, desktopMode = false }) {
             {/* Sidebar button */}
             <button
               onClick={onMenuClick}
-              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center md:hidden"
+              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
             >
               <Menu className="w-5 h-5 text-white" />
             </button>

@@ -180,6 +180,7 @@ export default function SideDrawer({
           t={t}
           activeSection={activeSection}
           sections={sections}
+          desktopMode={true}
         />
 
         {/* Content */}
@@ -202,11 +203,11 @@ export default function SideDrawer({
   }
 
   /* ===========================================================
-     ======================== MOBILE MODE =======================
-     =========================================================== */
+   ======================== MOBILE MODE =======================
+   =========================================================== */
   return (
     <>
-      {isOpen && (
+      {!desktopMode && isOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
           onClick={onClose}
@@ -215,36 +216,78 @@ export default function SideDrawer({
 
       <div
         className={`
-          fixed top-0 bottom-0 ${isRTL ? "left-0" : "right-0"}
-          w-full bg-[#0A0F18] z-50 transform transition-transform duration-300
-          ${
-            isOpen
-              ? "translate-x-0"
-              : isRTL
-              ? "-translate-x-full"
-              : "translate-x-full"
-          }
-        `}
+        fixed top-0 bottom-0 ${isRTL ? "right-0" : "left-0"}
+        w-full bg-[#0A0F18] z-50 transform transition-transform duration-300
+        ${
+          isOpen
+            ? "translate-x-0"
+            : isRTL
+            ? "translate-x-full" //hide to the right in RTL
+            : "-translate-x-full" //hide to the left in LTR
+        }
+      `}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
         <div className="h-full flex flex-col">
-          {/* Mobile header */}
+          {/* ============================
+            1) DrawerHeader – Logo only
+           ============================ */}
           <DrawerHeader
             isRTL={isRTL}
             t={t}
             activeSection={activeSection}
             sections={sections}
+            desktopMode={false}
           />
 
-          {/* Content */}
+          {/* ============================
+            2) TITLE – mobile
+           ============================ */}
+          <div
+            className={`
+                        flex items-center justify-between
+                        px-4 pt-5 pb-1
+                        ${isRTL ? "flex-row-reverse" : "flex-row"}
+                      `}
+          >
+            <div
+              className={`
+                          text-white text-base font-semibold
+                          ${isRTL ? "text-right" : "text-left"}
+                        `}
+            >
+              {sections.find((s) => s.id === activeSection)?.label}
+            </div>
+
+            {/* ----------------------------- */}
+            {/* X BUTTON — only mobile        */}
+            {/* ----------------------------- */}
+            {!desktopMode && (
+              <button
+                onClick={onClose}
+                className="
+              w-10 h-10 rounded-full bg-white/10 hover:bg-white/20
+              flex items-center justify-center transition-colors
+            "
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            )}
+          </div>
+
+          {/* ============================
+            3) Drawer content
+           ============================ */}
           <div className="flex-1 overflow-y-auto px-4 py-5 pb-24">
             <Suspense fallback={<div className="text-white">Loading…</div>}>
               {renderContent()}
             </Suspense>
           </div>
 
-          {/* Bottom navigation */}
+          {/* ============================
+            4) Bottom navigation
+           ============================ */}
           <DrawerSectionList
             sections={sections}
             activeSection={activeSection}

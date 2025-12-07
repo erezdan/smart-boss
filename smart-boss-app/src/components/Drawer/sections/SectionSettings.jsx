@@ -139,19 +139,22 @@ export default function SectionSettings({
                 className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${
                   notificationSettings[item.key]
                     ? "bg-[#C1A875]"
-                    : "bg-gray-500"
+                    : "bg-gray-600"
                 }`}
               >
                 <div
-                  className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
-                    notificationSettings[item.key]
-                      ? isRTL
-                        ? "translate-x-0"
-                        : "translate-x-[20px]"
-                      : isRTL
-                      ? "translate-x-[20px]"
-                      : "translate-x-0"
-                  }`}
+                  className={`
+              absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all
+              ${
+                isRTL
+                  ? notificationSettings[item.key]
+                    ? "left-0.5 right-auto"
+                    : "right-0.5 left-auto"
+                  : notificationSettings[item.key]
+                  ? "right-0.5 left-auto"
+                  : "left-0.5 right-auto"
+              }
+            `}
                 />
               </div>
             </div>

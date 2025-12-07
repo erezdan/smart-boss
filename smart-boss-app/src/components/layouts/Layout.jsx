@@ -22,20 +22,25 @@ export default function Layout() {
     <div className={isRTL ? "direction-rtl" : "direction-ltr"}>
       <div
         className={`
-        h-screen w-screen overflow-hidden bg-[#F7F7F9]
-        flex
-        ${isDesktop ? (isRTL ? "flex-row-reverse" : "flex-row") : "flex-col"}
-      `}
+          h-screen w-screen overflow-hidden bg-[#F7F7F9]
+          flex
+          ${isDesktop ? "flex-row" : "flex-col"}
+        `}
       >
         {/* DESKTOP MODE */}
         {isDesktop && (
-          <>
+          <div
+            className={`
+              flex h-full w-full
+              ${isRTL ? "flex-row-reverse" : "flex-row"}
+            `}
+          >
             {/* Drawer column */}
             <div
               className={`
-              w-[30vw] min-w-[420px] h-full bg-[#0A0F18]
-              ${isRTL ? "border-r" : "border-l"} border-black/20
-            `}
+                w-[30vw] min-w-[420px] h-full bg-[#0A0F18]
+                ${isRTL ? "border-l" : "border-r"} border-black/20
+              `}
             >
               <SideDrawer
                 isOpen={true}
@@ -50,7 +55,7 @@ export default function Layout() {
             <div className="flex-1 h-full">
               <ChatScreen onMenuClick={() => {}} desktopMode={true} />
             </div>
-          </>
+          </div>
         )}
 
         {/* MOBILE MODE */}
