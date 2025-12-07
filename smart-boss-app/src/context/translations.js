@@ -67,6 +67,10 @@ const translations = {
     en: "Queue",
     he: "תור",
   },
+  queueMetrics: {
+    en: "Queue Metrics",
+    he: "מדדי תור",
+  },
   business: {
     en: "Business",
     he: "עסקי",
@@ -186,6 +190,10 @@ const translations = {
   smartBossAnalytics: {
     en: "SMART BOSS Analytics",
     he: "SMART BOSS אנליטיקה",
+  },
+  dailyInsights: {
+    en: "Daily Insights",
+    he: "תובנות יומיות",
   },
 };
 

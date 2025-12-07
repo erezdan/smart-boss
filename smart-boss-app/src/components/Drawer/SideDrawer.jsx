@@ -1,0 +1,259 @@
+import React, {
+  useState,
+  useRef,
+  Suspense,
+  lazy,
+  useMemo,
+  useCallback,
+} from "react";
+import { X } from "lucide-react";
+import {
+  AlertTriangle,
+  Camera,
+  Users,
+  BarChart3,
+  Briefcase,
+  TrendingUp,
+  TrendingDown,
+  Settings as SettingsIcon,
+  Minus,
+} from "lucide-react";
+
+import { useLanguage } from "../../hooks/useLanguage";
+import { drawerData } from "../../mocks/mokeData";
+import { APP_VERSION } from "../../version";
+
+// New sub components
+import DrawerHeader from "./DrawerHeader";
+import DrawerSectionList from "./DrawerSectionList";
+
+/* Lazy load all sections */
+const SectionInsights = lazy(() => import("./sections/SectionInsights"));
+const SectionAlerts = lazy(() => import("./sections/SectionAlerts"));
+const SectionVision = lazy(() => import("./sections/SectionVision"));
+const SectionWorkers = lazy(() => import("./sections/SectionWorkers"));
+const SectionQueue = lazy(() => import("./sections/SectionQueue"));
+const SectionBusiness = lazy(() => import("./sections/SectionBusiness"));
+const SectionSettings = lazy(() => import("./sections/SectionSettings"));
+
+export default function SideDrawer({
+  isOpen,
+  onClose,
+  activeSection,
+  onSectionChange,
+  desktopMode = false,
+}) {
+  const { isRTL, language, t, toggleLanguage } = useLanguage();
+  const data = drawerData[language];
+
+  const [alertFilters, setAlertFilters] = useState({});
+  const [businessFilters, setBusinessFilters] = useState({});
+
+  /* Touch for mobile */
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+
+  const getTrendIcon = (trend) => {
+    switch (trend) {
+      case "up":
+        return <TrendingUp className="w-4 h-4 text-green-500" />;
+      case "down":
+        return <TrendingDown className="w-4 h-4 text-red-500" />;
+      default:
+        return <Minus className="w-4 h-4 text-gray-400" />;
+    }
+  };
+
+  const handleTouchStart = (e) => {
+    if (desktopMode) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (desktopMode) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) > Math.abs(dy) && dx > 80) onClose();
+  };
+
+  /* Build sections list */
+  const sections = useMemo(
+    () => [
+      { id: "insights", icon: TrendingUp, label: t("dailyInsights") },
+      { id: "alerts", icon: AlertTriangle, label: t("alerts") },
+      { id: "vision", icon: Camera, label: t("visionAI") },
+      { id: "workers", icon: Users, label: t("workers") },
+      { id: "queue", icon: BarChart3, label: t("queueMetrics") },
+      { id: "business", icon: Briefcase, label: t("business") },
+      { id: "settings", icon: SettingsIcon, label: t("settings") },
+    ],
+    [t]
+  );
+
+  /* Render content */
+  const renderContent = useCallback(() => {
+    try {
+      switch (activeSection) {
+        case "insights":
+          return (
+            <SectionInsights
+              data={{
+                ...data.insights,
+                items: data.insights.items.map((item) => ({
+                  ...item,
+                  trendIcon: getTrendIcon(item.trend),
+                })),
+              }}
+              isRTL={isRTL}
+              t={t}
+            />
+          );
+
+        case "alerts":
+          return (
+            <SectionAlerts
+              data={data.alerts}
+              filters={alertFilters}
+              setFilters={setAlertFilters}
+              isRTL={isRTL}
+              t={t}
+            />
+          );
+
+        case "vision":
+          return <SectionVision data={data.vision} isRTL={isRTL} t={t} />;
+
+        case "workers":
+          return <SectionWorkers data={data.workers} isRTL={isRTL} t={t} />;
+
+        case "queue":
+          return <SectionQueue data={data.queue} isRTL={isRTL} t={t} />;
+
+        case "business":
+          return (
+            <SectionBusiness
+              data={data.business}
+              filters={businessFilters}
+              setFilters={setBusinessFilters}
+              isRTL={isRTL}
+              t={t}
+            />
+          );
+
+        case "settings":
+          return (
+            <SectionSettings
+              isRTL={isRTL}
+              t={t}
+              toggleLanguage={toggleLanguage}
+              APP_VERSION={APP_VERSION}
+            />
+          );
+
+        default:
+          return null;
+      }
+    } catch (err) {
+      console.error("SideDrawer renderContent error:", err);
+      return <div className="text-red-400 p-4">Failed to load section.</div>;
+    }
+  }, [
+    activeSection,
+    data,
+    isRTL,
+    t,
+    toggleLanguage,
+    alertFilters,
+    businessFilters,
+  ]);
+
+  /* ===========================================================
+     ======================= DESKTOP MODE =======================
+     =========================================================== */
+  if (desktopMode) {
+    return (
+      <div className="h-full w-full bg-[#0A0F18] flex flex-col">
+        {/* Header */}
+        <DrawerHeader
+          isRTL={isRTL}
+          t={t}
+          activeSection={activeSection}
+          sections={sections}
+        />
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-4 py-5 pb-24">
+          <Suspense fallback={<div className="text-white">Loading…</div>}>
+            {renderContent()}
+          </Suspense>
+        </div>
+
+        {/* Bottom navigation */}
+        <DrawerSectionList
+          sections={sections}
+          activeSection={activeSection}
+          onSectionChange={onSectionChange}
+          isRTL={isRTL}
+          desktopMode={true}
+        />
+      </div>
+    );
+  }
+
+  /* ===========================================================
+     ======================== MOBILE MODE =======================
+     =========================================================== */
+  return (
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+          onClick={onClose}
+        />
+      )}
+
+      <div
+        className={`
+          fixed top-0 bottom-0 ${isRTL ? "left-0" : "right-0"}
+          w-full bg-[#0A0F18] z-50 transform transition-transform duration-300
+          ${
+            isOpen
+              ? "translate-x-0"
+              : isRTL
+              ? "-translate-x-full"
+              : "translate-x-full"
+          }
+        `}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="h-full flex flex-col">
+          {/* Mobile header */}
+          <DrawerHeader
+            isRTL={isRTL}
+            t={t}
+            activeSection={activeSection}
+            sections={sections}
+          />
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-4 py-5 pb-24">
+            <Suspense fallback={<div className="text-white">Loading…</div>}>
+              {renderContent()}
+            </Suspense>
+          </div>
+
+          {/* Bottom navigation */}
+          <DrawerSectionList
+            sections={sections}
+            activeSection={activeSection}
+            onSectionChange={onSectionChange}
+            isRTL={isRTL}
+            desktopMode={false}
+          />
+        </div>
+      </div>
+    </>
+  );
+}

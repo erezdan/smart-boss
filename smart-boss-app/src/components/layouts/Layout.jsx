@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "../../hooks/useLanguage";
 import ChatScreen from "../ChatScreen";
-import SideDrawer from "../SideDrawer";
+import SideDrawer from "../Drawer/SideDrawer";
 
 export default function Layout() {
   const { isRTL } = useLanguage();

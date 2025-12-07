@@ -9,6 +9,10 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
 
+      devOptions: {
+        enabled: true,
+      },
+
       manifest: {
         name: "Smart Boss",
         short_name: "SmartBoss",
@@ -17,7 +21,6 @@ export default defineConfig({
         background_color: "#000000",
         theme_color: "#000000",
         description: "AI Business Assistant",
-
         icons: [
           {
             src: "/icons/icon-192.png",
