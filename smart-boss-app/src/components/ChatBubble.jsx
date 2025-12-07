@@ -55,25 +55,27 @@ export default function ChatBubble({ message, onExpand }) {
   if (isUser) {
     return (
       <div
-        className={`flex ${
-          isRTL ? "flex-row-reverse" : "flex-row"
-        } justify-end mb-4 animate-fade-in`}
+        className={`
+    flex ${isRTL ? "flex-row-reverse" : "flex-row"}
+    justify-end mb-4 animate-fade-in
+  `}
       >
-        <div className="max-w-[80%] md:max-w-[60%]">
+        <div className="w-fit max-w-full">
           <div
             className={`
-              bg-[#0A0F18] text-white px-5 py-3 shadow-lg
-              ${userBubbleRadius}
-              md:hover:shadow-xl md:transition-all md:duration-200
-            `}
+        bg-[#0A0F18] text-white px-5 py-3 shadow-lg
+        ${userBubbleRadius}
+        md:hover:shadow-xl md:transition-all md:duration-200
+      `}
           >
             <p className="text-[15px] leading-relaxed">{message.content}</p>
           </div>
 
           <p
-            className={`text-xs text-gray-400 mt-1 ${
-              isRTL ? "text-right mr-3" : "text-left ml-3"
-            }`}
+            className={`
+        text-xs text-gray-400 mt-1
+        ${isRTL ? "text-right mr-3" : "text-left ml-3"}
+      `}
           >
             {message.timestamp}
           </p>
