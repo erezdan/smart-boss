@@ -211,6 +211,10 @@ const translations = {
     en: "Please wait while the content loads.",
     he: "אנא המתן בזמן שהתוכן נטען.",
   },
+  logout: {
+    en: "Logout",
+    he: "התנתק",
+  },
 };
 
 export default translations;

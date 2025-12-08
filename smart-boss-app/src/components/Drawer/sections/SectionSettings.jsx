@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Globe } from "lucide-react";
 import { UserStore } from "../../../data-access/UserStore";
+import { logout } from "../../../services/authService";
+import { useNavigate } from "react-router-dom";
 
 /*
 props:
@@ -16,6 +18,7 @@ export default function SectionSettings({
   toggleLanguage,
   APP_VERSION,
 }) {
+  const navigate = useNavigate();
   const { user } = UserStore.getState();
 
   const [notificationSettings, setNotificationSettings] = useState({
@@ -81,9 +84,9 @@ export default function SectionSettings({
           {/* Name */}
           <div
             className={`
-              flex justify-between
-              ${isRTL ? "flex-row-reverse" : "flex-row"}
-            `}
+        flex justify-between
+        ${isRTL ? "flex-row-reverse" : "flex-row"}
+      `}
           >
             <span className="text-gray-400">{t("name")}</span>
             <span className="text-gray-300">{user?.data?.full_name || ""}</span>
@@ -92,9 +95,9 @@ export default function SectionSettings({
           {/* Business */}
           <div
             className={`
-              flex justify-between
-              ${isRTL ? "flex-row-reverse" : "flex-row"}
-            `}
+        flex justify-between
+        ${isRTL ? "flex-row-reverse" : "flex-row"}
+      `}
           >
             <span className="text-gray-400">{t("business")}</span>
             <span className="text-gray-300">Coffee Shop</span>
@@ -103,14 +106,31 @@ export default function SectionSettings({
           {/* Role */}
           <div
             className={`
-              flex justify-between
-              ${isRTL ? "flex-row-reverse" : "flex-row"}
-            `}
+        flex justify-between
+        ${isRTL ? "flex-row-reverse" : "flex-row"}
+      `}
           >
             <span className="text-gray-400">{t("role")}</span>
             <span className="text-gray-300">{t("owner")}</span>
           </div>
         </div>
+
+        {/* Logout Button */}
+        <button
+          onClick={() => {
+            logout(false, navigate);
+          }}
+          className="
+                      w-full mt-4 py-2
+                      text-xs font-semibold
+                      rounded-lg
+                      bg-red-500/20 text-red-300
+                      hover:bg-red-500/30 hover:text-red-200
+                      transition-colors
+                    "
+        >
+          {t("logout")}
+        </button>
       </div>
 
       {/* NOTIFICATIONS */}
