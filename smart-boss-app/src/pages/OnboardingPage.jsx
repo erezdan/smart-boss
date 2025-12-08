@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Play,
   CheckCircle2,
@@ -12,6 +13,7 @@ import { content } from "../context/onboardingContent";
 import { useLanguage } from "../hooks/useLanguage";
 
 function OnboardingContent() {
+  const navigate = useNavigate();
   const { language, isRTL, toggleLanguage } = useLanguage();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [currentCase, setCurrentCase] = useState(0);
@@ -29,9 +31,15 @@ function OnboardingContent() {
     );
   };
 
-  const handleGetStarted = () => {
+  const handleGetStarted = (goToLogin) => {
     // Navigate to sign-in flow - implement based on your routing
-    window.location.href = "/login";
+    localStorage.setItem("onboardingCompleted", "yes");
+
+    if (goToLogin) {
+      navigate("/home", { replace: true });
+    } else {
+      navigate("/bubbles-survey", { replace: true });
+    }
   };
 
   return (
@@ -45,7 +53,7 @@ function OnboardingContent() {
             } items-center justify-between`}
           >
             <button
-              onClick={handleGetStarted}
+              onClick={() => handleGetStarted(true)}
               className="text-sm text-[#C1A875] hover:text-[#B09865] transition-colors"
             >
               {t.signIn}
@@ -312,7 +320,7 @@ function OnboardingContent() {
             transition={{ duration: 0.6 }}
           >
             <button
-              onClick={handleGetStarted}
+              onClick={() => handleGetStarted(false)}
               className="group relative px-12 py-5 bg-gradient-to-r from-[#C1A875] to-[#B09865] 
                 rounded-full text-[#0A0F18] text-lg font-bold
                 hover:shadow-2xl hover:shadow-[#C1A875]/30 transition-all duration-300

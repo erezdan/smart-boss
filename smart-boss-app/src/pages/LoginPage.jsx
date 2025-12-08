@@ -58,7 +58,7 @@ export default function Login() {
       }
     };
 
-    runAutoLogin();
+    //runAutoLogin();
   }, [initUser, navigate, t]);
 
   useEffect(() => {
@@ -91,7 +91,11 @@ export default function Login() {
           className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-md"
           style={{ backgroundColor: "#141B28" }}
         >
-          <Plane className="w-8 h-8 text-[#C1A875]" />
+          <img
+            src="/images/smart_boss_logo_only-transparent.png"
+            alt="Smart Boss Logo"
+            className="w-20 h-20 mb-6 animate-pulse opacity-90"
+          />
         </div>
 
         <h1 className="text-2xl font-bold text-white">{t("loginTitle")}</h1>
@@ -128,7 +132,7 @@ export default function Login() {
 
           <Button
             onClick={loginWithApple}
-            disabled={authenticating}
+            disabled={true}
             className="bg-[#C1A875] hover:bg-[#B09865] text-[#0A0F18] font-semibold shadow-xl rounded-xl flex items-center gap-2"
           >
             {authenticating ? (

@@ -215,6 +215,30 @@ const translations = {
     en: "Logout",
     he: "התנתק",
   },
+  loginErrorGeneric: {
+    en: "An error occurred during login. Please try again.",
+    he: "אירעה שגיאה במהלך ההתחברות. אנא נסה שוב.",
+  },
+  loginTitle: {
+    en: "Login to SmartBoss",
+    he: "התחבר לסמארטבוס",
+  },
+  loginSubtitle: {
+    en: "Manage your business efficiently with AI-powered insights.",
+    he: "נהל את העסק שלך ביעילות עם תובנות המונעות על ידי AI.",
+  },
+  loginWithGoogle: {
+    en: "Login with Google",
+    he: "התחבר עם גוגל",
+  },
+  loginWithApple: {
+    en: "Login with Apple",
+    he: "התחבר עם אפל",
+  },
+  loginSafeText: {
+    en: "We never share your information without your permission.",
+    he: "אנחנו אף פעם לא משתפים את המידע שלך ללא רשותך.",
+  },
 };
 
 export default translations;

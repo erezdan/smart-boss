@@ -23,8 +23,9 @@ export default function ModalExpand({ message, onClose }) {
       className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
       onClick={onClose}
     >
+      {/* Modal container (flex column so footer stays fixed) */}
       <div
-        className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden animate-scale-in"
+        className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden animate-scale-in flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -32,18 +33,19 @@ export default function ModalExpand({ message, onClose }) {
           <h3 className="text-xl font-semibold text-white">
             {message.expandable.title}
           </h3>
+
+          {/* Close button */}
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center
-              transition-colors"
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
           >
             <X className="w-5 h-5 text-white" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
-          {/* Image if present */}
+        {/* Scrollable content area */}
+        <div className="p-6 overflow-y-auto flex-1">
+          {/* Image */}
           {message.image && (
             <div className="mb-6 rounded-2xl overflow-hidden">
               <img
@@ -54,7 +56,7 @@ export default function ModalExpand({ message, onClose }) {
             </div>
           )}
 
-          {/* Details */}
+          {/* Description */}
           <div className="mb-6">
             <p
               className={`text-gray-700 leading-relaxed text-base ${
@@ -65,7 +67,7 @@ export default function ModalExpand({ message, onClose }) {
             </p>
           </div>
 
-          {/* Metrics */}
+          {/* Metrics summary */}
           {message.expandable.metrics && (
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="bg-gray-50 rounded-xl p-4 text-center">
@@ -74,12 +76,14 @@ export default function ModalExpand({ message, onClose }) {
                   {message.expandable.metrics.current}
                 </p>
               </div>
+
               <div className="bg-gray-50 rounded-xl p-4 text-center">
                 <p className="text-xs text-gray-500 mb-1">{t("average")}</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {message.expandable.metrics.average}
                 </p>
               </div>
+
               <div className="bg-gray-50 rounded-xl p-4 text-center flex flex-col items-center justify-center">
                 <p className="text-xs text-gray-500 mb-2">{t("trend")}</p>
                 {getTrendIcon(message.expandable.metrics.trend)}
@@ -87,7 +91,7 @@ export default function ModalExpand({ message, onClose }) {
             </div>
           )}
 
-          {/* Timeline */}
+          {/* Timeline section */}
           {message.expandable.timeline && (
             <div className="mb-6">
               <h4
@@ -97,6 +101,7 @@ export default function ModalExpand({ message, onClose }) {
               >
                 {t("timeline")}
               </h4>
+
               <div className="space-y-2">
                 {message.expandable.timeline.map((item, index) => (
                   <div
@@ -113,7 +118,7 @@ export default function ModalExpand({ message, onClose }) {
             </div>
           )}
 
-          {/* Breakdown */}
+          {/* Breakdown section */}
           {message.expandable.breakdown && (
             <div className="mb-6">
               <h4
@@ -123,6 +128,7 @@ export default function ModalExpand({ message, onClose }) {
               >
                 {t("breakdown")}
               </h4>
+
               <div className="grid grid-cols-3 gap-3">
                 {Object.entries(message.expandable.breakdown).map(
                   ([key, value]) => (
@@ -141,7 +147,7 @@ export default function ModalExpand({ message, onClose }) {
             </div>
           )}
 
-          {/* Recommendation */}
+          {/* Recommendation box */}
           {message.expandable.recommendation && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
               <h4
@@ -151,6 +157,7 @@ export default function ModalExpand({ message, onClose }) {
               >
                 {t("recommendation")}
               </h4>
+
               <p
                 className={`text-sm text-amber-700 ${
                   isRTL ? "text-right" : "text-left"
@@ -161,7 +168,7 @@ export default function ModalExpand({ message, onClose }) {
             </div>
           )}
 
-          {/* Assigned To */}
+          {/* Assigned to */}
           {message.expandable.assignedTo && (
             <div className="mt-4 flex items-center gap-2">
               <span className="text-xs text-gray-500">{t("assignedTo")}</span>
@@ -172,12 +179,11 @@ export default function ModalExpand({ message, onClose }) {
           )}
         </div>
 
-        {/* Footer */}
-        <div className="border-t border-gray-200 px-6 py-4 flex justify-end">
+        {/* Footer - always visible */}
+        <div className="border-t border-gray-200 px-6 py-4 flex justify-end bg-white">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 bg-[#0A0F18] text-white rounded-xl font-medium hover:bg-[#141B28] 
-              transition-colors"
+            className="px-6 py-2.5 bg-[#0A0F18] text-white rounded-xl font-medium hover:bg-[#141B28] transition-colors"
           >
             {t("close")}
           </button>

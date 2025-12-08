@@ -164,15 +164,15 @@ export async function logout(silent = false, navigate) {
         if (typeof navigate === "function") {
           // Prefer React Router navigation if available
           console.log("🔁 Redirecting via React Router...");
-          navigate("/login", { replace: true });
+          navigate("/home", { replace: true });
         } else {
           // Fallback: full reload for PWA/Service Worker consistency
           console.log("🔁 Redirecting via window.location...");
-          window.location.href = "/login";
+          window.location.href = "/home";
         }
       } catch (navError) {
         console.warn("⚠️ Navigation failed, forcing full reload:", navError);
-        window.location.href = "/login";
+        window.location.href = "/home";
       }
     }
 

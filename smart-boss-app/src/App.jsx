@@ -25,8 +25,9 @@ import { useLanguage } from "./hooks/useLanguage";
 import { UserStore } from "./data-access/UserStore";
 
 import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
 import OnboardingPage from "./pages/OnboardingPage";
-import Login from "./pages/LoginPage";
+import BubbleSurveyPage from "./pages/BubbleSurveyPage";
 
 // ✅ Pages that must NOT auto-redirect to login
 const PUBLIC_PATHS = ["/login"];
@@ -43,8 +44,27 @@ function App({ redirectResult }) {
   // Always call the hook (short-circuits internally)
   usePWAInstall();
 
-  // ✅ Handle version upgrade BEFORE auth init
+  // 🚀 Redirect root based on onboarding state
   useEffect(() => {
+    if (location.pathname === "/") {
+      const hasOnboarded =
+        localStorage.getItem("onboardingCompleted") === "yes";
+
+      const hasCompletedBubblesSurvey =
+        localStorage.getItem("bubblesSurveyCompleted") === "yes";
+
+      if (hasOnboarded && hasCompletedBubblesSurvey) {
+        navigate("/home", { replace: true });
+      } else if (hasOnboarded) {
+        navigate("/bubbles-survey", { replace: true });
+      } else {
+        navigate("/onboarding", { replace: true });
+      }
+    }
+  }, [location.pathname, navigate]);
+
+  // ✅ Handle version upgrade BEFORE auth init
+  /*useEffect(() => {
     logAuthProcess("App component mounted", true);
 
     const checkVersion = async () => {
@@ -57,7 +77,7 @@ function App({ redirectResult }) {
     };
 
     checkVersion();
-  }, []);
+  }, []);*/
 
   // ✅ Handle Firebase Auth state changes
   useEffect(() => {
@@ -113,11 +133,10 @@ function App({ redirectResult }) {
               "redirectTo"
             );
 
-            const isPaymentReturn =
-              location.pathname === "/payment-success" ||
-              location.pathname === "/payment-fail";
-
-            if (!isPaymentReturn) {
+            if (
+              location.pathname !== "/onboarding" &&
+              location.pathname !== "/bubbles-survey"
+            ) {
               navigate(redirectTo || "/home", { replace: true });
               logAuthProcess(
                 `Navigated after login to ${redirectTo || "/home"}`
@@ -147,7 +166,7 @@ function App({ redirectResult }) {
             );
 
             if (!isPublic) {
-              navigate("/login", { replace: true });
+              navigate("/home", { replace: true });
               logAuthProcess("Navigated to login page (only if needed)");
             }
           }
@@ -205,7 +224,7 @@ function App({ redirectResult }) {
         className="flex flex-col items-center justify-center min-h-screen bg-[#0A0F18] text-gray-300"
       >
         <img
-          src="/images/smart_boss_logo_only-transperent.png"
+          src="/images/smart_boss_logo_only-transparent.png"
           alt="Smart Boss Logo"
           className="w-16 h-16 mb-4 animate-pulse opacity-90"
           draggable="false"
@@ -226,8 +245,9 @@ function App({ redirectResult }) {
     <Routes>
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route path="/home" element={<HomePage />} />
+      <Route path="/login" element={<LoginPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
-      <Route path="/login" element={<Login />} />
+      <Route path="/bubbles-survey" element={<BubbleSurveyPage />} />
 
       {/* 404 fallback */}
       <Route path="*" element={<div>Page Not Found</div>} />

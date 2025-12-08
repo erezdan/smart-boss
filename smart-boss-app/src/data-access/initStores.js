@@ -37,10 +37,10 @@ export async function initStores(uid) {
 
     // ✅ replaced direct calls with safeListen wrapper
     //await listenWithRetry("AppsSettings", AppsSettingsStore.getState().listen);
-    await listenWithRetry(
-      "FlightTemplates"
-      //FlightTemplatesStore.getState().listen
-    );
+    //await listenWithRetry(
+    //  "FlightTemplates"
+    //FlightTemplatesStore.getState().listen
+    //);
 
     if (uid) {
       //await listenWithRetry("Flights", FlightsStore.getState().listen);
