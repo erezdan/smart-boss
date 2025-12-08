@@ -3,9 +3,5 @@ import { LanguageProvider } from "../context/LanguageContext";
 import Layout from "../components/layouts/Layout";
 
 export default function HomePage() {
-  return (
-    <LanguageProvider>
-      <Layout />
-    </LanguageProvider>
-  );
+  return <Layout />;
 }
