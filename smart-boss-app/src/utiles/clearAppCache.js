@@ -60,7 +60,7 @@ export async function clearAppCacheIfVersionChanged(onStateChange) {
               .filter(
                 (db) =>
                   db.name?.startsWith("firestore/") ||
-                  db.name?.includes("flights-6529b")
+                  db.name?.includes("smart-boss-a771e")
               )
               .map((db) => window.indexedDB.deleteDatabase(db.name))
           );

@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Globe } from "lucide-react";
+import { UserStore } from "../../../data-access/UserStore";
+
 /*
 props:
 - isRTL: boolean
@@ -14,6 +16,8 @@ export default function SectionSettings({
   toggleLanguage,
   APP_VERSION,
 }) {
+  const { user } = UserStore.getState();
+
   const [notificationSettings, setNotificationSettings] = useState({
     high: true,
     worker: false,
@@ -82,7 +86,7 @@ export default function SectionSettings({
             `}
           >
             <span className="text-gray-400">{t("name")}</span>
-            <span className="text-gray-300">David Cohen</span>
+            <span className="text-gray-300">{user?.data?.full_name || ""}</span>
           </div>
 
           {/* Business */}

@@ -1,21 +1,233 @@
-//import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Routes,
   Route,
   Navigate,
-  //useNavigate,
-  //useLocation,
+  useNavigate,
+  useLocation,
 } from "react-router-dom";
+import { usePWAInstall } from "./hooks/usePWAInstall";
+import { logAuthProcess } from "./utiles/logAuthProcess";
+import logger from "./utiles/myLogger";
+import { clearAppCacheIfVersionChanged } from "./utiles/clearAppCache";
+import {
+  handleAuthRedirect,
+  getAndClearLoginMethod,
+} from "./services/authService";
+import { auth } from "./lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import {
+  initStores,
+  initStoresGuest,
+  stopStores,
+} from "../src/data-access/initStores";
+import { useLanguage } from "./hooks/useLanguage";
+import { UserStore } from "./data-access/UserStore";
 
 import HomePage from "./pages/HomePage";
 import OnboardingPage from "./pages/OnboardingPage";
+import Login from "./pages/LoginPage";
 
-function App() {
+// ✅ Pages that must NOT auto-redirect to login
+const PUBLIC_PATHS = ["/login"];
+
+function App({ redirectResult }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isRTL, t } = useLanguage();
+  const { initUser, clear } = UserStore.getState();
+
+  const [isAuthLoading, setAuthLoading] = useState(true);
+  const [updatingApp, setUpdatingApp] = useState(false);
+
+  // Always call the hook (short-circuits internally)
+  usePWAInstall();
+
+  // ✅ Handle version upgrade BEFORE auth init
+  useEffect(() => {
+    logAuthProcess("App component mounted", true);
+
+    const checkVersion = async () => {
+      const refreshing = await clearAppCacheIfVersionChanged((state) => {
+        if (state === "updating") setUpdatingApp(true);
+      });
+
+      // 🛑 Stop here if updating — don't run auth yet
+      if (refreshing) return;
+    };
+
+    checkVersion();
+  }, []);
+
+  // ✅ Handle Firebase Auth state changes
+  useEffect(() => {
+    let unsub = null;
+    logAuthProcess("App.jsx useEffect:init");
+
+    // Display loading immediately if it's a redirect flow
+    if (localStorage.getItem("loginMethod") === "redirect") {
+      setAuthLoading(true);
+    }
+
+    const initAuth = async () => {
+      try {
+        const method = getAndClearLoginMethod();
+        logAuthProcess("Retrieved login method: " + method);
+
+        if (redirectResult?.user) {
+          console.log("Redirect user:", redirectResult.user.uid);
+          handleAuthRedirect(redirectResult, initUser, method);
+        }
+      } catch (err) {
+        logger.error("Redirect handling failed:", err);
+      }
+
+      // Ensure loading state is active before onAuthStateChanged
+      setAuthLoading(true);
+
+      unsub = onAuthStateChanged(auth, async (authUser) => {
+        try {
+          if (authUser) {
+            logger.log("✅ User authenticated:", authUser.uid);
+            logAuthProcess(
+              "onAuthStateChanged: user signed in: " + authUser.uid,
+              true
+            );
+
+            // 1️⃣ Initialize user document first (critical)
+            await initUser(authUser);
+            logAuthProcess("UserStore initialized");
+
+            // 2️⃣ Start store initialization (non-blocking for listeners)
+            // Only the templates await internally (see optimized initStores version)
+            await initStores(authUser.uid);
+            logAuthProcess(
+              "Data stores initialized, User: " +
+                authUser.uid +
+                " " +
+                authUser.displayName
+            );
+
+            // 3️⃣ Handle redirect logic
+            const redirectTo = new URLSearchParams(location.search).get(
+              "redirectTo"
+            );
+
+            const isPaymentReturn =
+              location.pathname === "/payment-success" ||
+              location.pathname === "/payment-fail";
+
+            if (!isPaymentReturn) {
+              navigate(redirectTo || "/home", { replace: true });
+              logAuthProcess(
+                `Navigated after login to ${redirectTo || "/home"}`
+              );
+            } else {
+              logAuthProcess("Skipping auto-redirect after payment return");
+            }
+
+            return;
+          } else {
+            logger.log("🚪 User signed out");
+
+            // clear user
+            clear();
+            logAuthProcess("UserStore cleared");
+
+            // 1️⃣ Clear all stores + unsubscribe listeners
+            stopStores();
+            logAuthProcess("Data stores stopped");
+
+            await initStoresGuest();
+            logAuthProcess("Guest stores initialized");
+
+            // 2️⃣ Redirect to login only if not already on public page
+            const isPublic = PUBLIC_PATHS.some((path) =>
+              location.pathname.startsWith(path)
+            );
+
+            if (!isPublic) {
+              navigate("/login", { replace: true });
+              logAuthProcess("Navigated to login page (only if needed)");
+            }
+          }
+        } catch (err) {
+          logger.error("❌ Auth state handling error:", err);
+        } finally {
+          // 4️⃣ Always clear loading state at the end
+          setAuthLoading(false);
+          logAuthProcess("Auth state change handling complete");
+        }
+      });
+    };
+
+    initAuth();
+
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [
+    clear,
+    initUser,
+    location.pathname,
+    navigate,
+    redirectResult,
+    updatingApp,
+    location.search,
+  ]);
+
+  // ✅ Show "Updating" screen (Smart Boss styling)
+  if (updatingApp) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0F18] text-gray-300">
+        {/* Logo */}
+        <img
+          src="/images/smart_boss_logo_only-transparent.png"
+          alt="Smart Boss Logo"
+          className="w-20 h-20 mb-6 animate-pulse opacity-90"
+        />
+
+        {/* Title */}
+        <div className="text-xl font-semibold animate-pulse text-[#C1A875]">
+          {t("appUpdatingTitle")}
+        </div>
+
+        {/* Subtitle */}
+        <div className="text-sm text-gray-400 animate-pulse mt-1">
+          {t("appUpdatingSubtitle")}
+        </div>
+      </div>
+    );
+  } else if (isAuthLoading) {
+    return (
+      <div
+        dir={isRTL ? "rtl" : "ltr"}
+        className="flex flex-col items-center justify-center min-h-screen bg-[#0A0F18] text-gray-300"
+      >
+        <img
+          src="/images/smart_boss_logo_only-transperent.png"
+          alt="Smart Boss Logo"
+          className="w-16 h-16 mb-4 animate-pulse opacity-90"
+          draggable="false"
+        />
+
+        <span className="text-lg font-medium tracking-wide animate-pulse text-[#C1A875]">
+          {t("loadingTitle")}
+        </span>
+
+        <span className="text-sm text-gray-400 mt-2 animate-pulse">
+          {t("loadingSubtitle")}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route path="/home" element={<HomePage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/login" element={<Login />} />
 
       {/* 404 fallback */}
       <Route path="*" element={<div>Page Not Found</div>} />

@@ -195,6 +195,22 @@ const translations = {
     en: "Daily Insights",
     he: "תובנות יומיות",
   },
+  appUpdatingTitle: {
+    en: "The app is updating. Please wait...",
+    he: "האפליקציה מתעדכנת. אנא המתן...",
+  },
+  appUpdatingSubtitle: {
+    en: "Thank you for your patience.",
+    he: "תודה על הסבלנות שלך.",
+  },
+  loadingTitle: {
+    en: "Loading...",
+    he: "טוען...",
+  },
+  loadingSubtitle: {
+    en: "Please wait while the content loads.",
+    he: "אנא המתן בזמן שהתוכן נטען.",
+  },
 };
 
 export default translations;

@@ -133,7 +133,7 @@ export default function ChatScreen({ onMenuClick, desktopMode = false }) {
 
                   {/* Logo SECOND (like desktop RTL) */}
                   <img
-                    src="/images/smart_boss_logo_only-transperent.png"
+                    src="/images/smart_boss_logo_only-transparent.png"
                     alt="Smart Boss Logo"
                     className="w-8 h-8 object-contain scale-[1.15]"
                   />
@@ -142,7 +142,7 @@ export default function ChatScreen({ onMenuClick, desktopMode = false }) {
                 <>
                   {/* Logo FIRST (like desktop LTR) */}
                   <img
-                    src="/images/smart_boss_logo_only-transperent.png"
+                    src="/images/smart_boss_logo_only-transparent.png"
                     alt="Smart Boss Logo"
                     className="w-8 h-8 object-contain scale-[1.15]"
                   />
