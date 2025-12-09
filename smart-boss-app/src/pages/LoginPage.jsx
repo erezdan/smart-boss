@@ -3,68 +3,35 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
 import { useLanguage } from "../hooks/useLanguage";
-import { auth } from "../lib/firebase";
-import {
-  GoogleAuthProvider,
-  OAuthProvider,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
+import { GoogleAuthProvider, OAuthProvider } from "firebase/auth";
 import { Plane, Loader2 } from "lucide-react";
 import { UserStore } from "../data-access/UserStore";
-import { loginWithGoogle, loginWithApple } from "../services/authService";
+import { loginHandler } from "../services/authService";
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const { t, isRTL } = useLanguage();
-  const { initUser } = UserStore.getState();
   const navigate = useNavigate();
 
   const [authenticating, setAuthenticating] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // === DEVELOPMENT AUTO LOGIN ===
-  useEffect(() => {
-    const isDev = import.meta.env.MODE === "development";
-    const devEmail = import.meta.env.VITE_FIREBASE_DEV_LOCALHOST_USER_EMAIL;
-    const devPassword = import.meta.env
-      .VITE_FIREBASE_DEV_LOCALHOST_USER_PASSWORD;
-
-    if (!isDev || auth.currentUser || !devEmail || !devPassword) {
-      return;
-    }
-
-    const runAutoLogin = async () => {
-      try {
-        console.log("🔧 Dev mode: auto-login in progress...");
-        setAuthenticating(true);
-
-        const res = await signInWithEmailAndPassword(
-          auth,
-          devEmail,
-          devPassword
-        );
-
-        console.log("✅ Dev user logged in:", res.user.uid);
-        await initUser(res.user);
-
-        if (location.pathname === "/login") {
-          navigate("/home", { replace: true });
-        }
-      } catch (err) {
-        console.warn("⚠️ Dev auto-login failed:", err.message);
-        setErrorMsg(t("loginErrorGeneric"));
-      } finally {
-        setAuthenticating(false);
-      }
-    };
-
-    //runAutoLogin();
-  }, [initUser, navigate, t]);
-
   useEffect(() => {
     // Scroll to top on login page mount
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
+
+  const handleLogin = async (provider) => {
+    try {
+      setAuthenticating(true);
+      await loginHandler(provider, navigate);
+    } catch (err) {
+      console.warn("Login failed:", err);
+      setErrorMsg(t("loginErrorGeneric"));
+    } finally {
+      setAuthenticating(false);
+    }
+  };
 
   return (
     <div
@@ -112,7 +79,7 @@ export default function Login() {
         {/* Buttons */}
         <div className="mt-6 flex flex-col gap-3 w-64">
           <Button
-            onClick={loginWithGoogle}
+            onClick={() => handleLogin("google")}
             disabled={authenticating}
             className="bg-[#C1A875] hover:bg-[#B09865] text-[#0A0F18] font-semibold shadow-xl rounded-xl flex items-center gap-2"
           >
@@ -131,7 +98,7 @@ export default function Login() {
           </Button>
 
           <Button
-            onClick={loginWithApple}
+            onClick={() => handleLogin("apple")}
             disabled={true}
             className="bg-[#C1A875] hover:bg-[#B09865] text-[#0A0F18] font-semibold shadow-xl rounded-xl flex items-center gap-2"
           >

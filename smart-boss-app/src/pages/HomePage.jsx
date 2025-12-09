@@ -9,7 +9,7 @@ export default function HomePage() {
   useEffect(() => {
     // 1) Block access if user is NOT logged in
     if (!auth.currentUser) {
-      navigate("/home", { replace: true });
+      navigate("/login", { replace: true });
       return;
     }
 

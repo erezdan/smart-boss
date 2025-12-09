@@ -1,3 +1,7 @@
 smart boss app deplyment
 ========================
 firebase deploy --only hosting:smartboss-app
+
+API and sevices
+===============
+https://console.cloud.google.com/apis/credentials?project=smart-boss-a771e

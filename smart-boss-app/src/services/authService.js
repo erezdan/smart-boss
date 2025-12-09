@@ -10,6 +10,7 @@ import { serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 import { UserStore } from "../data-access/UserStore";
 import logger from "../utiles/myLogger";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 /**
  * Store the login method in both sessionStorage and localStorage
@@ -19,13 +20,13 @@ export function setLoginMethod(method) {
   try {
     sessionStorage.setItem("loginMethod", method);
   } catch (err) {
-    console.warn("⚠️ Unable to store login method in sessionStorage:", err);
+    logger.warning("⚠️ Unable to store login method in sessionStorage:", err);
   }
 
   try {
     localStorage.setItem("loginMethod", method);
   } catch (err) {
-    console.warn("⚠️ Unable to store login method in localStorage:", err);
+    logger.warning("⚠️ Unable to store login method in localStorage:", err);
   }
 }
 
@@ -47,9 +48,49 @@ export function getAndClearLoginMethod() {
 
     return method || null;
   } catch (err) {
-    console.warn("⚠️ Unable to read login method:", err);
+    logger.warning("⚠️ Unable to read login method:", err);
     return null;
   }
+}
+
+/**
+ * Generic login handler for Google/Apple with dev override.
+ * @param {"google" | "apple"} providerType
+ */
+export async function loginHandler(providerType, navigate) {
+  const isDev = import.meta.env.MODE === "development";
+  const devEmail = import.meta.env.VITE_FIREBASE_DEV_LOCALHOST_USER_EMAIL;
+  const devPassword = import.meta.env.VITE_FIREBASE_DEV_LOCALHOST_USER_PASSWORD;
+
+  // ⭐ DEV MODE → login with email/password instead of redirect
+  if (isDev) {
+    if (!devEmail || !devPassword) {
+      logger.warning("Dev login: missing email/password env vars");
+      return;
+    }
+
+    try {
+      logger.log("🔧 DEV login via email/password");
+      const res = await signInWithEmailAndPassword(auth, devEmail, devPassword);
+      if (res?.user) {
+        logger.log("✅ Dev login succeeded:", res.user.uid);
+        const { initUser } = UserStore.getState();
+        await initUser(res.user);
+        navigate("/home", { replace: true });
+      } else {
+        logger.error("❌ Dev login failed: no user in response");
+      }
+    } catch (e) {
+      logger.error("❌ Dev login failed:", e);
+      throw e;
+    }
+  }
+
+  // ⭐ PRODUCTION → real Google / Apple redirect flows
+  if (providerType === "google") return loginWithGoogle();
+  if (providerType === "apple") return loginWithApple();
+
+  logger.warning("Unknown provider:", providerType);
 }
 
 /**
@@ -84,7 +125,7 @@ export async function loginWithApple() {
   provider.addScope("name");
 
   try {
-    console.log("📱 PWA detected → using redirect");
+    logger.log("📱 PWA detected → using redirect");
     setLoginMethod("redirect");
     await signInWithRedirect(auth, provider);
   } catch (error) {
@@ -102,7 +143,7 @@ export async function handleAuthRedirect(redirectResult, initUser, method) {
     if (!redirectResult?.user) return;
 
     const user = redirectResult.user;
-    console.log("User logged in after redirect:", user.uid);
+    logger.log("User logged in after redirect:", user.uid);
 
     // Initialize user in the app
     if (initUser) await initUser(user);
@@ -118,12 +159,12 @@ export async function handleAuthRedirect(redirectResult, initUser, method) {
               last_login_time: serverTimestamp(),
             },
           });
-          console.log(`📦 Stored login method (${method}) in Firestore`);
+          logger.log(`📦 Stored login method (${method}) in Firestore`);
         } else {
-          console.warn("⚠️ updateRefs not ready, skipping user update");
+          logger.warning("⚠️ updateRefs not ready, skipping user update");
         }
       } catch (e) {
-        console.warn("⚠️ Failed to update user record:", e);
+        logger.warning("⚠️ Failed to update user record:", e);
       }
     }
   } catch (error) {
@@ -153,10 +194,10 @@ export async function logout(silent = false, navigate) {
     const { clear } = UserStore.getState?.() || {};
     if (typeof clear === "function") {
       clear();
-      console.log("🧹 Cleared local user store");
+      logger.log("🧹 Cleared local user store");
     }
 
-    console.log("✅ User successfully signed out");
+    logger.log("✅ User successfully signed out");
 
     // 🚪 Step 4: Redirect user (unless silent mode)
     if (!silent) {
@@ -164,15 +205,15 @@ export async function logout(silent = false, navigate) {
         if (typeof navigate === "function") {
           // Prefer React Router navigation if available
           console.log("🔁 Redirecting via React Router...");
-          navigate("/home", { replace: true });
+          navigate("/login", { replace: true });
         } else {
           // Fallback: full reload for PWA/Service Worker consistency
-          console.log("🔁 Redirecting via window.location...");
-          window.location.href = "/home";
+          logger.log("🔁 Redirecting via window.location...");
+          window.location.href = "/login";
         }
       } catch (navError) {
-        console.warn("⚠️ Navigation failed, forcing full reload:", navError);
-        window.location.href = "/home";
+        logger.warning("⚠️ Navigation failed, forcing full reload:", navError);
+        window.location.href = "/login";
       }
     }
 
@@ -182,7 +223,7 @@ export async function logout(silent = false, navigate) {
 
     // 🧯 Step 5: Last-resort fallback for stale sessions
     if (!silent) {
-      console.warn("⚠️ Forcing reload to clear stale auth state...");
+      logger.warning("⚠️ Forcing reload to clear stale auth state...");
       setTimeout(() => window.location.reload(), 500);
     }
 

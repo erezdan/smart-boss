@@ -54,7 +54,7 @@ function App({ redirectResult }) {
         localStorage.getItem("bubblesSurveyCompleted") === "yes";
 
       if (hasOnboarded && hasCompletedBubblesSurvey) {
-        navigate("/home", { replace: true });
+        navigate("/login", { replace: true });
       } else if (hasOnboarded) {
         navigate("/bubbles-survey", { replace: true });
       } else {
@@ -64,7 +64,7 @@ function App({ redirectResult }) {
   }, [location.pathname, navigate]);
 
   // ✅ Handle version upgrade BEFORE auth init
-  /*useEffect(() => {
+  useEffect(() => {
     logAuthProcess("App component mounted", true);
 
     const checkVersion = async () => {
@@ -77,7 +77,7 @@ function App({ redirectResult }) {
     };
 
     checkVersion();
-  }, []);*/
+  }, []);
 
   // ✅ Handle Firebase Auth state changes
   useEffect(() => {
@@ -97,6 +97,7 @@ function App({ redirectResult }) {
         if (redirectResult?.user) {
           console.log("Redirect user:", redirectResult.user.uid);
           handleAuthRedirect(redirectResult, initUser, method);
+          return;
         }
       } catch (err) {
         logger.error("Redirect handling failed:", err);
@@ -166,7 +167,7 @@ function App({ redirectResult }) {
             );
 
             if (!isPublic) {
-              navigate("/home", { replace: true });
+              navigate("/login", { replace: true });
               logAuthProcess("Navigated to login page (only if needed)");
             }
           }

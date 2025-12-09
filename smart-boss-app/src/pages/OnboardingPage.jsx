@@ -36,7 +36,7 @@ function OnboardingContent() {
     localStorage.setItem("onboardingCompleted", "yes");
 
     if (goToLogin) {
-      navigate("/home", { replace: true });
+      navigate("/login", { replace: true });
     } else {
       navigate("/bubbles-survey", { replace: true });
     }
