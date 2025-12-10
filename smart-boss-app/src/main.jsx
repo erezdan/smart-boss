@@ -1,18 +1,4 @@
 // src/main.jsx
-
-import { auth } from "./lib/firebase";
-import { getRedirectResult } from "firebase/auth";
-
-let redirectResult = null;
-
-// 🚀 MUST RUN BEFORE ANYTHING (React, SW, Zustand, App)
-try {
-  redirectResult = await getRedirectResult(auth);
-  console.log("🔄 Redirect result (early):", redirectResult);
-} catch (err) {
-  console.error("❌ Redirect processing error:", err);
-}
-
 (async () => {
   // Load dependencies AFTER handling redirect
   const { StrictMode } = await import("react");
@@ -36,20 +22,20 @@ try {
 
   const isDev = import.meta.env.MODE === "development";
 
-  // 🚀 Start React app with redirectResult passed as prop
+  // 🚀 Start React app with passed as prop
   createRoot(document.getElementById("root")).render(
     isDev ? (
       <StrictMode>
         <BrowserRouter>
           <LanguageProvider>
-            <App redirectResult={redirectResult} />
+            <App />
           </LanguageProvider>
         </BrowserRouter>
       </StrictMode>
     ) : (
       <BrowserRouter>
         <LanguageProvider>
-          <App redirectResult={redirectResult} />
+          <App />
         </LanguageProvider>
       </BrowserRouter>
     )

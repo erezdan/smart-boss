@@ -7,11 +7,9 @@ import { GoogleAuthProvider, OAuthProvider } from "firebase/auth";
 import { Plane, Loader2 } from "lucide-react";
 import { UserStore } from "../data-access/UserStore";
 import { loginHandler } from "../services/authService";
-import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const { t, isRTL } = useLanguage();
-  const navigate = useNavigate();
 
   const [authenticating, setAuthenticating] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -24,7 +22,7 @@ export default function Login() {
   const handleLogin = async (provider) => {
     try {
       setAuthenticating(true);
-      await loginHandler(provider, navigate);
+      await loginHandler(provider);
     } catch (err) {
       console.warn("Login failed:", err);
       setErrorMsg(t("loginErrorGeneric"));

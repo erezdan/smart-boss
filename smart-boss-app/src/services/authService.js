@@ -57,7 +57,7 @@ export function getAndClearLoginMethod() {
  * Generic login handler for Google/Apple with dev override.
  * @param {"google" | "apple"} providerType
  */
-export async function loginHandler(providerType, navigate) {
+export async function loginHandler(providerType) {
   const isDev = import.meta.env.MODE === "development";
   const devEmail = import.meta.env.VITE_FIREBASE_DEV_LOCALHOST_USER_EMAIL;
   const devPassword = import.meta.env.VITE_FIREBASE_DEV_LOCALHOST_USER_PASSWORD;
@@ -69,17 +69,12 @@ export async function loginHandler(providerType, navigate) {
       return;
     }
 
+    sessionStorage.setItem("loginMethod", "redirect");
+    localStorage.setItem("loginMethod", "redirect");
+
     try {
       logger.log("🔧 DEV login via email/password");
-      const res = await signInWithEmailAndPassword(auth, devEmail, devPassword);
-      if (res?.user) {
-        logger.log("✅ Dev login succeeded:", res.user.uid);
-        const { initUser } = UserStore.getState();
-        await initUser(res.user);
-        navigate("/home", { replace: true });
-      } else {
-        logger.error("❌ Dev login failed: no user in response");
-      }
+      await signInWithEmailAndPassword(auth, devEmail, devPassword);
     } catch (e) {
       logger.error("❌ Dev login failed:", e);
       throw e;

@@ -1,26 +1,56 @@
+// vite.config.js
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  base: "/",
+
   plugins: [
     react(),
 
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: "auto",
+
+      filename: "sw.js",
+
+      strategies: "generateSW",
 
       devOptions: {
-        enabled: false,
+        enabled: true,
+        type: "module",
       },
+
+      workbox: {
+        navigateFallbackDenylist: [/^\/__\/auth\/.*/],
+
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
+
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff2}"],
+      },
+
+      includeAssets: [
+        "favicon.png",
+        "apple-touch-icon.png",
+        "icons/icon-192.png",
+        "icons/icon-256.png",
+        "icons/icon-512.png",
+      ],
 
       manifest: {
         name: "Smart Boss",
         short_name: "SmartBoss",
-        start_url: "/",
+        description: "AI Business Assistant",
+        lang: "he",
+        dir: "rtl",
+        start_url: "/?source=pwa",
         display: "standalone",
         background_color: "#000000",
         theme_color: "#000000",
-        description: "AI Business Assistant",
+
         icons: [
           {
             src: "/icons/icon-192.png",
@@ -40,14 +70,10 @@ export default defineConfig({
         ],
       },
 
-      workbox: {
-        navigateFallback: "/",
-        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
-      },
-
-      includeAssets: ["/apple-touch-icon.png"],
+      srcDir: "src",
     }),
   ],
+
   server: {
     port: 5174,
   },
