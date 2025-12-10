@@ -10,10 +10,7 @@ import { usePWAInstall } from "./hooks/usePWAInstall";
 import { logAuthProcess } from "./utiles/logAuthProcess";
 import logger from "./utiles/myLogger";
 import { clearAppCacheIfVersionChanged } from "./utiles/clearAppCache";
-import {
-  handleAuthRedirect,
-  getAndClearLoginMethod,
-} from "./services/authService";
+import { handleAuthRedirect } from "./services/authService";
 import { auth } from "./lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -29,14 +26,13 @@ import LoginPage from "./pages/LoginPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import BubbleSurveyPage from "./pages/BubbleSurveyPage";
 
-// ✅ Pages that must NOT auto-redirect to login
-const PUBLIC_PATHS = ["/login"];
-
 function App({ redirectResult }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isRTL, t } = useLanguage();
-  const { initUser, clear } = UserStore.getState();
+  const initUser = UserStore.getState().initUser;
+  const clear = UserStore.getState().clear;
+  const { user, isReady } = UserStore();
 
   const [isAuthLoading, setAuthLoading] = useState(true);
   const [updatingApp, setUpdatingApp] = useState(false);
@@ -46,22 +42,22 @@ function App({ redirectResult }) {
 
   // 🚀 Redirect root based on onboarding state
   useEffect(() => {
-    if (location.pathname === "/") {
-      const hasOnboarded =
-        localStorage.getItem("onboardingCompleted") === "yes";
+    if (!user || !isReady) return;
 
-      const hasCompletedBubblesSurvey =
-        localStorage.getItem("bubblesSurveyCompleted") === "yes";
+    const hasOnboarded = localStorage.getItem("onboardingCompleted") === "yes";
 
-      if (hasOnboarded && hasCompletedBubblesSurvey) {
-        navigate("/home", { replace: true });
-      } else if (hasOnboarded) {
-        navigate("/bubbles-survey", { replace: true });
-      } else {
-        navigate("/onboarding", { replace: true });
-      }
+    const hasCompletedBubbles =
+      localStorage.getItem("bubblesSurveyCompleted") === "yes";
+
+    let target = "/home";
+
+    if (!hasOnboarded) target = "/onboarding";
+    else if (!hasCompletedBubbles) target = "/bubbles-survey";
+
+    if (location.pathname !== target) {
+      navigate(target, { replace: true });
     }
-  }, [location.pathname, navigate]);
+  }, [user, isReady, navigate, location.pathname]);
 
   // ✅ Handle version upgrade BEFORE auth init
   useEffect(() => {
@@ -86,16 +82,17 @@ function App({ redirectResult }) {
 
     logAuthProcess("App.jsx useEffect:init");
 
+    const method =
+      sessionStorage.getItem("loginMethod") ||
+      localStorage.getItem("loginMethod");
+
     // If redirect login is in progress, show loading screen immediately
-    if (localStorage.getItem("loginMethod") === "redirect") {
+    if (method === "redirect") {
       setAuthLoading(true);
     }
 
     const initAuth = async () => {
       try {
-        const method = getAndClearLoginMethod();
-        logAuthProcess("Retrieved login method: " + method);
-
         // ---------------------------------------
         // 🔵 STEP 1: Handle redirect login FIRST
         // ---------------------------------------
@@ -106,6 +103,9 @@ function App({ redirectResult }) {
             logAuthProcess("Handling redirectResult user...");
             await handleAuthRedirect(redirectResult, initUser, method);
             logAuthProcess("Redirect flow completed");
+
+            sessionStorage.removeItem("loginMethod");
+            localStorage.removeItem("loginMethod");
 
             // Stop loading only after redirect handled
             setAuthLoading(false);
@@ -128,6 +128,13 @@ function App({ redirectResult }) {
 
       unsub = onAuthStateChanged(auth, async (authUser) => {
         try {
+          if (redirectHandled) {
+            logAuthProcess(
+              "Skipping onAuthStateChanged because redirect already handled"
+            );
+            return;
+          }
+
           // ---------------------------------------
           // USER LOGGED OUT
           // ---------------------------------------
@@ -143,30 +150,12 @@ function App({ redirectResult }) {
             await initStoresGuest();
             logAuthProcess("Guest stores initialized");
 
-            const isPublic = PUBLIC_PATHS.some((path) =>
-              location.pathname.startsWith(path)
-            );
-
-            if (!isPublic && !redirectHandled) {
-              navigate("/login", { replace: true });
-              logAuthProcess("Navigated to login (signed out)");
-            }
-
             return;
           }
 
           // ---------------------------------------
           // USER LOGGED IN
           // ---------------------------------------
-
-          // Prevent duplicate initialization after redirect handling
-          if (redirectHandled) {
-            logAuthProcess(
-              "Skipping onAuthStateChanged (redirect already handled)"
-            );
-            return;
-          }
-
           logger.log("✅ User authenticated:", authUser.uid);
           logAuthProcess("onAuthStateChanged: user signed in " + authUser.uid);
 
@@ -183,14 +172,14 @@ function App({ redirectResult }) {
             "redirectTo"
           );
 
-          if (
-            location.pathname !== "/onboarding" &&
-            location.pathname !== "/bubbles-survey"
+          if (redirectTo) {
+            logAuthProcess("Redirecting to: " + redirectTo);
+            navigate(redirectTo, { replace: true });
+          } else if (
+            location.pathname === "/onboarding" ||
+            location.pathname === "/bubbles-survey"
           ) {
-            navigate("/home", { replace: true });
-            logAuthProcess(`Navigated after login to ${redirectTo || "/home"}`);
-          } else {
-            logAuthProcess("Skipping auto-redirect (payment return)");
+            logAuthProcess("Skipping auto-redirect (onboarding flow)");
           }
         } catch (err) {
           logger.error("❌ Auth state handling error:", err);
@@ -207,15 +196,8 @@ function App({ redirectResult }) {
     return () => {
       if (unsub) unsub();
     };
-  }, [
-    clear,
-    initUser,
-    location.pathname,
-    navigate,
-    redirectResult,
-    updatingApp,
-    location.search,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clear, initUser, navigate, redirectResult]);
 
   // ✅ Show "Updating" screen (Smart Boss styling)
   if (updatingApp) {
@@ -265,7 +247,6 @@ function App({ redirectResult }) {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/home" replace />} />
       <Route path="/home" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
