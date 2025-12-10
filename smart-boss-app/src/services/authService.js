@@ -183,36 +183,32 @@ export async function handleAuthRedirect(redirectResult, initUser, method) {
  */
 export async function logout(silent = false, navigate) {
   try {
-    // 🧹 Step 1: Clear stored login method flags
+    // Remove login method flags
     sessionStorage.removeItem("loginMethod");
     localStorage.removeItem("loginMethod");
 
-    // 🔐 Step 2: Sign out from Firebase
+    // Sign out from Firebase Auth
     await signOut(auth);
 
-    // 🧠 Step 3: Clear Zustand store if available
-    const { clear } = UserStore.getState?.() || {};
-    if (typeof clear === "function") {
-      clear();
+    // Clear user store safely
+    const state = UserStore.getState();
+    if (state && typeof state.clear === "function") {
+      state.clear();
       logger.log("🧹 Cleared local user store");
     }
 
     logger.log("✅ User successfully signed out");
 
-    // 🚪 Step 4: Redirect user (unless silent mode)
+    // Handle UI redirection unless silent mode
     if (!silent) {
       try {
         if (typeof navigate === "function") {
-          // Prefer React Router navigation if available
-          console.log("🔁 Redirecting via React Router...");
           navigate("/login", { replace: true });
         } else {
-          // Fallback: full reload for PWA/Service Worker consistency
-          logger.log("🔁 Redirecting via window.location...");
           window.location.href = "/login";
         }
       } catch (navError) {
-        logger.warning("⚠️ Navigation failed, forcing full reload:", navError);
+        logger.warning("Navigation failed, forcing full reload:", navError);
         window.location.href = "/login";
       }
     }
@@ -221,9 +217,8 @@ export async function logout(silent = false, navigate) {
   } catch (error) {
     logger.error("❌ Sign-out failed:", error);
 
-    // 🧯 Step 5: Last-resort fallback for stale sessions
+    // Last-resort recovery
     if (!silent) {
-      logger.warning("⚠️ Forcing reload to clear stale auth state...");
       setTimeout(() => window.location.reload(), 500);
     }
 

@@ -5,7 +5,7 @@ import logger from "./myLogger";
 let lastLogTime = performance.now();
 
 export function logAuthProcess(step, resetLogTime = false) {
-  const { trace_auth_process } = true; //AppsSettingsStore.getState();
+  const { trace_auth_process } = false; //AppsSettingsStore.getState();
   if (!trace_auth_process) return;
 
   if (resetLogTime) {

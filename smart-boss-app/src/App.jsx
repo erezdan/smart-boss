@@ -54,7 +54,7 @@ function App({ redirectResult }) {
         localStorage.getItem("bubblesSurveyCompleted") === "yes";
 
       if (hasOnboarded && hasCompletedBubblesSurvey) {
-        navigate("/login", { replace: true });
+        navigate("/home", { replace: true });
       } else if (hasOnboarded) {
         navigate("/bubbles-survey", { replace: true });
       } else {
@@ -82,9 +82,11 @@ function App({ redirectResult }) {
   // ✅ Handle Firebase Auth state changes
   useEffect(() => {
     let unsub = null;
+    let redirectHandled = false; // Prevents double initialization
+
     logAuthProcess("App.jsx useEffect:init");
 
-    // Display loading immediately if it's a redirect flow
+    // If redirect login is in progress, show loading screen immediately
     if (localStorage.getItem("loginMethod") === "redirect") {
       setAuthLoading(true);
     }
@@ -94,87 +96,106 @@ function App({ redirectResult }) {
         const method = getAndClearLoginMethod();
         logAuthProcess("Retrieved login method: " + method);
 
+        // ---------------------------------------
+        // 🔵 STEP 1: Handle redirect login FIRST
+        // ---------------------------------------
         if (redirectResult?.user) {
-          console.log("Redirect user:", redirectResult.user.uid);
-          handleAuthRedirect(redirectResult, initUser, method);
-          return;
+          try {
+            redirectHandled = true;
+
+            logAuthProcess("Handling redirectResult user...");
+            await handleAuthRedirect(redirectResult, initUser, method);
+            logAuthProcess("Redirect flow completed");
+
+            // Stop loading only after redirect handled
+            setAuthLoading(false);
+
+            return; // Prevent onAuthStateChanged from running too early
+          } catch (err) {
+            logger.error("Redirect handling failed:", err);
+          }
         }
       } catch (err) {
-        logger.error("Redirect handling failed:", err);
+        logger.error("Redirect handling failed (outer):", err);
       }
 
-      // Ensure loading state is active before onAuthStateChanged
+      // ---------------------------------------
+      // 🔵 STEP 2: Fallback — use onAuthStateChanged
+      // ---------------------------------------
+
+      // Ensure loading screen is active until auth is resolved
       setAuthLoading(true);
 
       unsub = onAuthStateChanged(auth, async (authUser) => {
         try {
-          if (authUser) {
-            logger.log("✅ User authenticated:", authUser.uid);
-            logAuthProcess(
-              "onAuthStateChanged: user signed in: " + authUser.uid,
-              true
-            );
-
-            // 1️⃣ Initialize user document first (critical)
-            await initUser(authUser);
-            logAuthProcess("UserStore initialized");
-
-            // 2️⃣ Start store initialization (non-blocking for listeners)
-            // Only the templates await internally (see optimized initStores version)
-            await initStores(authUser.uid);
-            logAuthProcess(
-              "Data stores initialized, User: " +
-                authUser.uid +
-                " " +
-                authUser.displayName
-            );
-
-            // 3️⃣ Handle redirect logic
-            const redirectTo = new URLSearchParams(location.search).get(
-              "redirectTo"
-            );
-
-            if (
-              location.pathname !== "/onboarding" &&
-              location.pathname !== "/bubbles-survey"
-            ) {
-              navigate(redirectTo || "/home", { replace: true });
-              logAuthProcess(
-                `Navigated after login to ${redirectTo || "/home"}`
-              );
-            } else {
-              logAuthProcess("Skipping auto-redirect after payment return");
-            }
-
-            return;
-          } else {
+          // ---------------------------------------
+          // USER LOGGED OUT
+          // ---------------------------------------
+          if (!authUser) {
             logger.log("🚪 User signed out");
 
-            // clear user
             clear();
             logAuthProcess("UserStore cleared");
 
-            // 1️⃣ Clear all stores + unsubscribe listeners
             stopStores();
             logAuthProcess("Data stores stopped");
 
             await initStoresGuest();
             logAuthProcess("Guest stores initialized");
 
-            // 2️⃣ Redirect to login only if not already on public page
             const isPublic = PUBLIC_PATHS.some((path) =>
               location.pathname.startsWith(path)
             );
 
-            if (!isPublic) {
+            if (!isPublic && !redirectHandled) {
               navigate("/login", { replace: true });
-              logAuthProcess("Navigated to login page (only if needed)");
+              logAuthProcess("Navigated to login (signed out)");
             }
+
+            return;
+          }
+
+          // ---------------------------------------
+          // USER LOGGED IN
+          // ---------------------------------------
+
+          // Prevent duplicate initialization after redirect handling
+          if (redirectHandled) {
+            logAuthProcess(
+              "Skipping onAuthStateChanged (redirect already handled)"
+            );
+            return;
+          }
+
+          logger.log("✅ User authenticated:", authUser.uid);
+          logAuthProcess("onAuthStateChanged: user signed in " + authUser.uid);
+
+          // Init user document in Firestore
+          await initUser(authUser);
+          logAuthProcess("UserStore initialized");
+
+          // Init all data stores
+          await initStores(authUser.uid);
+          logAuthProcess("Data stores initialized");
+
+          // Determine redirect destination
+          const redirectTo = new URLSearchParams(location.search).get(
+            "redirectTo"
+          );
+
+          if (
+            location.pathname !== "/onboarding" &&
+            location.pathname !== "/bubbles-survey"
+          ) {
+            navigate("/home", { replace: true });
+            logAuthProcess(`Navigated after login to ${redirectTo || "/home"}`);
+          } else {
+            logAuthProcess("Skipping auto-redirect (payment return)");
           }
         } catch (err) {
           logger.error("❌ Auth state handling error:", err);
         } finally {
-          // 4️⃣ Always clear loading state at the end
+          // Always remove loading when flow is fully complete
           setAuthLoading(false);
           logAuthProcess("Auth state change handling complete");
         }
