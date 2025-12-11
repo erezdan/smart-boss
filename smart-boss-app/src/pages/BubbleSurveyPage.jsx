@@ -14,8 +14,6 @@ function BubbleSurveyContent() {
     step1: [],
     step2: [],
     step3: [],
-    step4: [],
-    step5: [],
   });
   const [showFinal, setShowFinal] = useState(false);
 
@@ -73,8 +71,6 @@ function BubbleSurveyContent() {
       step1: t.summaryStep1,
       step2: t.summaryStep2,
       step3: t.summaryStep3,
-      step4: t.summaryStep4,
-      step5: t.summaryStep5,
     };
 
     let output = `${t.summaryIntro}\n\n`;
@@ -99,8 +95,6 @@ function BubbleSurveyContent() {
       { title: t.summaryStep1, items: selections.step1 },
       { title: t.summaryStep2, items: selections.step2 },
       { title: t.summaryStep3, items: selections.step3 },
-      { title: t.summaryStep4, items: selections.step4 },
-      { title: t.summaryStep5, items: selections.step5 },
     ];
 
     const summaryText = buildSummaryText();
@@ -321,7 +315,7 @@ function BubbleSurveyContent() {
                 hover:shadow-lg hover:shadow-[#C1A875]/30 transition-all 
                 duration-300 transform hover:scale-105`}
             >
-              <span>{currentStep === totalSteps ? t.finalButton : t.next}</span>
+              <span>{showFinal ? t.finalButton : t.next}</span>
               {isRTL ? (
                 <ChevronLeft className="w-5 h-5" />
               ) : (
