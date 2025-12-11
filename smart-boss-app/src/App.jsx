@@ -102,6 +102,12 @@ export default function App() {
       return;
     }
 
+    // IF PATH = "/" → REDIRECT TO "/home"
+    if (location.pathname === "/") {
+      navigate("/home", { replace: true });
+      return;
+    }
+
     const hasOnboarded = localStorage.getItem("onboardingCompleted") === "yes";
     const hasCompletedBubbles =
       localStorage.getItem("bubblesSurveyCompleted") === "yes";
