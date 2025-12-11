@@ -8,7 +8,6 @@ import { safeListen } from "../utiles/safeListen";
 export const UserStore = create((set, get) => ({
   user: null,
   unsubscribe: null,
-  isReady: false,
 
   /**
    * Initialize and attach user listener.
@@ -83,7 +82,14 @@ export const UserStore = create((set, get) => ({
             // Merge Firestore doc with userModel to ensure structure completeness
             if (docSnap.exists()) {
               const data = docSnap.data();
-              set({ user: { ...userModel, ...data }, isReady: true });
+
+              // Ignore incomplete or partial snapshots (prevents blank user state)
+              if (!data?.auth_data?.uid) {
+                logger.warn("UserStore: ignoring incomplete snapshot");
+                return;
+              }
+
+              set({ user: { ...userModel, ...data } });
             } else {
               logger.warn(
                 "UserStore: snapshot missing — keeping previous state"
@@ -121,12 +127,12 @@ export const UserStore = create((set, get) => ({
         set({ unsubscribe: null });
       }
 
-      set({ user: null, unsubscribe: null, isReady: false });
+      set({ user: null, unsubscribe: null });
 
       logger.log("UserStore cleared (listener stopped)");
     } catch (err) {
       logger.error("UserStore.clear error:", err);
-      set({ user: null, unsubscribe: null, isReady: false });
+      set({ user: null, unsubscribe: null });
     }
   },
 

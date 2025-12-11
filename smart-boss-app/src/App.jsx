@@ -12,7 +12,9 @@ import {
 
 import { clearAppCacheIfVersionChanged } from "./utiles/clearAppCache";
 import { useLanguage } from "./hooks/useLanguage";
+import logger from "./utiles/myLogger";
 
+import ErrorBoundary from "./components/ErrorBoundary";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import OnboardingPage from "./pages/OnboardingPage";
@@ -21,113 +23,141 @@ import BubbleSurveyPage from "./pages/BubbleSurveyPage";
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
-
   const { t, isRTL } = useLanguage();
+
   const initUser = UserStore.getState().initUser;
   const clear = UserStore.getState().clear;
-  const { isReady } = UserStore();
 
   const [loading, setLoading] = useState(true);
   const [updatingApp, setUpdatingApp] = useState(false);
 
-  // -----------------------------------------
-  // 1. CHECK APP VERSION BEFORE EVERYTHING
-  // -----------------------------------------
+  // ------------------------------------------------------
+  // 1. Check app version
+  // ------------------------------------------------------
   useEffect(() => {
     async function checkVersion() {
-      const refreshing = await clearAppCacheIfVersionChanged((state) => {
-        if (state === "updating") setUpdatingApp(true);
-      });
+      try {
+        const refreshing = await clearAppCacheIfVersionChanged((state) => {
+          if (state === "updating") setUpdatingApp(true);
+        });
 
-      if (!refreshing) return;
+        if (!refreshing) return;
+      } catch {
+        setUpdatingApp(false);
+      }
     }
+
     checkVersion();
   }, []);
 
-  // ----------------------------------------------------
-  // 2. AUTHENTICATION FLOW (redirectResult → authState)
-  // ----------------------------------------------------
+  // ------------------------------------------------------
+  // 2. Authentication handling
+  // ------------------------------------------------------
   useEffect(() => {
     let unsub;
 
-    async function initAuth() {
+    async function startAuthFlow() {
       setLoading(true);
 
-      // TRY REDIRECT RESULT FIRST
-      const redirect = await getRedirectResult(auth);
+      try {
+        // Step A: Try redirect result
+        const redirect = await getRedirectResult(auth);
 
-      if (redirect?.user) {
-        const u = redirect.user;
-
-        await initUser(u);
-        await initStores(u.uid);
-
-        setLoading(false);
-        return;
-      }
-
-      // THEN FALLBACK TO NORMAL onAuthStateChanged
-      unsub = onAuthStateChanged(auth, async (authUser) => {
-        if (!authUser) {
-          clear();
-          stopStores();
-          await initStoresGuest();
+        if (redirect?.user) {
+          const u = redirect.user;
+          await initUser(u);
+          await initStores(u.uid);
           setLoading(false);
           return;
         }
 
-        await initUser(authUser);
-        await initStores(authUser.uid);
+        // Step B: Standard auth listener
+        unsub = onAuthStateChanged(auth, async (authUser) => {
+          try {
+            if (!authUser) {
+              // guest mode
+              clear();
+              stopStores();
+              await initStoresGuest();
+              setLoading(false);
+              return;
+            }
+
+            await initUser(authUser);
+            await initStores(authUser.uid);
+            setLoading(false);
+          } catch (err) {
+            logger.error("onAuthStateChanged error:", err);
+            clear();
+            stopStores();
+            await initStoresGuest();
+            setLoading(false);
+          }
+        });
+      } catch (err) {
+        logger.error("startAuthFlow error:", err);
+        clear();
+        stopStores();
+        await initStoresGuest();
         setLoading(false);
-      });
+      }
     }
 
-    initAuth();
+    startAuthFlow();
     return () => unsub && unsub();
-  }, [clear, initUser]);
+  }, [initUser, clear]);
 
   // ------------------------------------------------------
-  // 3. POST-AUTH ROUTING (XOR: onboarding | bubbles | home)
+  // 3. Routing logic AFTER auth resolved
   // ------------------------------------------------------
   useEffect(() => {
-    if (loading) return;
-    if (!isReady) return;
+    if (loading) return; // do nothing until auth is resolved
 
     const currentUser = auth.currentUser;
 
+    // Case 1: user is not authenticated
     if (!currentUser) {
-      if (location.pathname !== "/login") {
-        navigate("/login", { replace: true });
-      }
+      navigate("/login", { replace: true });
       return;
     }
 
-    // IF PATH = "/" → REDIRECT TO "/home"
+    // Case 2: user logged in but at "/"
     if (location.pathname === "/") {
       navigate("/home", { replace: true });
       return;
     }
 
+    // Case 3: onboarding
     const hasOnboarded = localStorage.getItem("onboardingCompleted") === "yes";
+
+    if (!hasOnboarded && location.pathname !== "/onboarding") {
+      navigate("/onboarding", { replace: true });
+      return;
+    }
+
+    // Case 4: bubble survey
     const hasCompletedBubbles =
       localStorage.getItem("bubblesSurveyCompleted") === "yes";
 
-    let target = "/home";
-
-    if (!hasOnboarded) target = "/onboarding";
-    else if (!hasCompletedBubbles) target = "/bubbles-survey";
-
-    if (location.pathname !== target) {
-      navigate(target, { replace: true });
+    if (!hasCompletedBubbles && location.pathname !== "/bubbles-survey") {
+      navigate("/bubbles-survey", { replace: true });
+      return;
     }
-  }, [loading, isReady, location.pathname, navigate]);
+
+    // Everything OK → allow page to render normally
+  }, [loading, location.pathname, navigate]);
 
   // ------------------------------------------------------
-  // 4. RENDER SCREENS
+  // 4. Render control (no flashes!)
   // ------------------------------------------------------
+
+  // Case A: App is updating → block UI
   if (updatingApp) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0F18] text-gray-300">
+      <div
+        dir={isRTL ? "rtl" : "ltr"}
+        className="flex flex-col items-center justify-center min-h-screen bg-[#0A0F18] text-gray-300"
+      >
         <img
           src="/images/smart_boss_logo_only-transparent.png"
           className="w-20 h-20 mb-6 animate-pulse opacity-90"
@@ -142,6 +172,7 @@ export default function App() {
     );
   }
 
+  // Case B: Auth not resolved → block UI (no blank screen)
   if (loading) {
     return (
       <div
@@ -162,14 +193,19 @@ export default function App() {
     );
   }
 
+  // ------------------------------------------------------
+  // 5. Actual content
+  // ------------------------------------------------------
   return (
-    <Routes>
-      <Route path="/home" element={<HomePage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/onboarding" element={<OnboardingPage />} />
-      <Route path="/bubbles-survey" element={<BubbleSurveyPage />} />
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/home" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="/bubbles-survey" element={<BubbleSurveyPage />} />
 
-      <Route path="*" element={<div>Page Not Found</div>} />
-    </Routes>
+        <Route path="*" element={<div>Page Not Found</div>} />
+      </Routes>
+    </ErrorBoundary>
   );
 }

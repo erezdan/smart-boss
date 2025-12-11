@@ -239,6 +239,15 @@ const translations = {
     en: "We never share your information without your permission.",
     he: "אנחנו אף פעם לא משתפים את המידע שלך ללא רשותך.",
   },
+  errorBoundaryTitle: {
+    en: "Something went wrong",
+    he: "אירעה שגיאה במערכת",
+  },
+
+  errorBoundarySubtitle: {
+    en: "The interface encountered a problem while loading this screen. You may try again or continue later.",
+    he: "הממשק נתקל בבעיה בעת טעינת המסך. ניתן לנסות שוב או להמשיך מאוחר יותר.",
+  },
 };
 
 export default translations;
