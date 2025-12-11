@@ -1,5 +1,12 @@
+// src/App.jsx
 import React, { useEffect, useState } from "react";
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import { getRedirectResult, onAuthStateChanged } from "firebase/auth";
 import { auth } from "./lib/firebase";
 
@@ -12,13 +19,17 @@ import {
 
 import { clearAppCacheIfVersionChanged } from "./utiles/clearAppCache";
 import { useLanguage } from "./hooks/useLanguage";
+import { logAuthProcess } from "./utiles/logAuthProcess";
 import logger from "./utiles/myLogger";
 
 import ErrorBoundary from "./components/ErrorBoundary";
+
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import BubbleSurveyPage from "./pages/BubbleSurveyPage";
+
+const PUBLIC_PATHS = ["/login", "/onboarding", "/bubbles-survey"];
 
 export default function App() {
   const navigate = useNavigate();
@@ -28,11 +39,11 @@ export default function App() {
   const initUser = UserStore.getState().initUser;
   const clear = UserStore.getState().clear;
 
-  const [loading, setLoading] = useState(true);
+  const [loadingAuth, setLoadingAuth] = useState(true);
   const [updatingApp, setUpdatingApp] = useState(false);
 
   // ------------------------------------------------------
-  // 1. Check app version
+  // 1. Version check
   // ------------------------------------------------------
   useEffect(() => {
     async function checkVersion() {
@@ -41,8 +52,12 @@ export default function App() {
           if (state === "updating") setUpdatingApp(true);
         });
 
-        if (!refreshing) return;
-      } catch {
+        if (refreshing) {
+          logAuthProcess("App: version change detected, refreshing", true);
+          return;
+        }
+      } catch (err) {
+        logger.error("checkVersion error:", err);
         setUpdatingApp(false);
       }
     }
@@ -51,47 +66,59 @@ export default function App() {
   }, []);
 
   // ------------------------------------------------------
-  // 2. Authentication handling
+  // 2. Auth handling (same structure as Flyter)
   // ------------------------------------------------------
   useEffect(() => {
     let unsub;
 
     async function startAuthFlow() {
-      setLoading(true);
+      logAuthProcess("App: startAuthFlow", true);
+      setLoadingAuth(true);
 
       try {
-        // Step A: Try redirect result
+        // Step A: redirect result
         const redirect = await getRedirectResult(auth);
 
         if (redirect?.user) {
           const u = redirect.user;
+          logAuthProcess("App: redirect user " + u.uid, true);
+
           await initUser(u);
           await initStores(u.uid);
-          setLoading(false);
+
+          setLoadingAuth(false);
           return;
         }
 
-        // Step B: Standard auth listener
+        // Step B: standard listener
         unsub = onAuthStateChanged(auth, async (authUser) => {
           try {
             if (!authUser) {
-              // guest mode
+              logAuthProcess("onAuthStateChanged: signed out", true);
+
               clear();
               stopStores();
               await initStoresGuest();
-              setLoading(false);
+
+              setLoadingAuth(false);
               return;
             }
 
+            logAuthProcess(
+              "onAuthStateChanged: signed in " + authUser.uid,
+              true
+            );
+
             await initUser(authUser);
             await initStores(authUser.uid);
-            setLoading(false);
+
+            setLoadingAuth(false);
           } catch (err) {
             logger.error("onAuthStateChanged error:", err);
             clear();
             stopStores();
             await initStoresGuest();
-            setLoading(false);
+            setLoadingAuth(false);
           }
         });
       } catch (err) {
@@ -99,59 +126,83 @@ export default function App() {
         clear();
         stopStores();
         await initStoresGuest();
-        setLoading(false);
+        setLoadingAuth(false);
       }
     }
 
     startAuthFlow();
-    return () => unsub && unsub();
-  }, [initUser, clear]);
+
+    return () => {
+      if (unsub) unsub();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ------------------------------------------------------
-  // 3. Routing logic AFTER auth resolved
+  // 3. Post-auth routing logic (fixed, no Hebrew in code)
   // ------------------------------------------------------
   useEffect(() => {
-    if (loading) return; // do nothing until auth is resolved
+    if (loadingAuth) return;
 
     const currentUser = auth.currentUser;
+    const path = location.pathname;
 
-    // Case 1: user is not authenticated
-    if (!currentUser) {
-      navigate("/login", { replace: true });
-      return;
-    }
-
-    // Case 2: user logged in but at "/"
-    if (location.pathname === "/") {
-      navigate("/home", { replace: true });
-      return;
-    }
-
-    // Case 3: onboarding
     const hasOnboarded = localStorage.getItem("onboardingCompleted") === "yes";
+    const hasCompletedBubbles =
+      localStorage.getItem("bubblesSurveyCompleted") === "yes";
 
-    if (!hasOnboarded && location.pathname !== "/onboarding") {
+    // -----------------------------------------
+    // A: no user logged in
+    // -----------------------------------------
+    if (!currentUser) {
+      // First: onboarding
+      if (!hasOnboarded && path !== "/onboarding") {
+        navigate("/onboarding", { replace: true });
+        return;
+      }
+
+      // Second: bubble survey
+      if (hasOnboarded && !hasCompletedBubbles && path !== "/bubbles-survey") {
+        navigate("/bubbles-survey", { replace: true });
+        return;
+      }
+
+      // After both — only public pages allowed while logged out
+      const allowed = PUBLIC_PATHS.some((p) => path.startsWith(p));
+
+      if (!allowed) {
+        navigate("/login", { replace: true });
+      }
+
+      return;
+    }
+
+    // -----------------------------------------
+    // B: user IS logged in
+    // -----------------------------------------
+
+    // Still need onboarding?
+    if (!hasOnboarded && path !== "/onboarding") {
       navigate("/onboarding", { replace: true });
       return;
     }
 
-    // Case 4: bubble survey
-    const hasCompletedBubbles =
-      localStorage.getItem("bubblesSurveyCompleted") === "yes";
-
-    if (!hasCompletedBubbles && location.pathname !== "/bubbles-survey") {
+    // Need bubble survey?
+    if (hasOnboarded && !hasCompletedBubbles && path !== "/bubbles-survey") {
       navigate("/bubbles-survey", { replace: true });
       return;
     }
 
-    // Everything OK → allow page to render normally
-  }, [loading, location.pathname, navigate]);
+    // If logged in and on login or root → go home
+    if (path === "/" || path === "/login") {
+      navigate("/home", { replace: true });
+      return;
+    }
+  }, [loadingAuth, location.pathname, navigate]);
 
   // ------------------------------------------------------
-  // 4. Render control (no flashes!)
+  // 4. Render gates
   // ------------------------------------------------------
-
-  // Case A: App is updating → block UI
   if (updatingApp) {
     return (
       <div
@@ -172,8 +223,7 @@ export default function App() {
     );
   }
 
-  // Case B: Auth not resolved → block UI (no blank screen)
-  if (loading) {
+  if (loadingAuth) {
     return (
       <div
         dir={isRTL ? "rtl" : "ltr"}
@@ -194,7 +244,7 @@ export default function App() {
   }
 
   // ------------------------------------------------------
-  // 5. Actual content
+  // 5. Routes
   // ------------------------------------------------------
   return (
     <ErrorBoundary>
@@ -203,6 +253,8 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/bubbles-survey" element={<BubbleSurveyPage />} />
+
+        <Route path="/" element={<Navigate to="/home" replace />} />
 
         <Route path="*" element={<div>Page Not Found</div>} />
       </Routes>
