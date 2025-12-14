@@ -248,6 +248,14 @@ const translations = {
     en: "The interface encountered a problem while loading this screen. You may try again or continue later.",
     he: "הממשק נתקל בבעיה בעת טעינת המסך. ניתן לנסות שוב או להמשיך מאוחר יותר.",
   },
+  preferences: {
+    en: "Preferences",
+    he: "העדפות",
+  },
+  drawerSwipeDirection: {
+    en: "Drawer Swipe Direction",
+    he: "גרירת מגירה מימין לשמאל",
+  },
 };
 
 export default translations;

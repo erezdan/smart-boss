@@ -175,4 +175,6 @@ export const UserStore = create((set, get) => ({
 
   updateData: (updates) => get().updateSection("data", updates),
   updatePrefs: (updates) => get().updateSection("prefs", updates),
+  updateNotifications: (updates) =>
+    get().updateSection("notifications", updates),
 }));

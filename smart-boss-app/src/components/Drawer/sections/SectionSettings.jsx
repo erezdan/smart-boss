@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Globe } from "lucide-react";
 import { UserStore } from "../../../data-access/UserStore";
 import { logout } from "../../../services/authService";
@@ -19,19 +19,55 @@ export default function SectionSettings({
   APP_VERSION,
 }) {
   const navigate = useNavigate();
-  const { user } = UserStore.getState();
+  const user = UserStore((s) => s.user);
+  const { updatePrefs, updateNotifications, updateData } = UserStore.getState();
 
-  const [notificationSettings, setNotificationSettings] = useState({
-    high: true,
+  const drawerSwipeRTL = user?.prefs?.drawer_swipe_rtl ?? true;
+  const notifications = user?.notifications || {
+    high: false,
     worker: false,
-    summary: true,
-  });
+    summary: false,
+  };
 
-  const toggleSetting = (key) => {
-    setNotificationSettings((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+  const updateUserSection = async (section, updates) => {
+    switch (section) {
+      case "prefs":
+        return updatePrefs(updates);
+
+      case "notifications":
+        return updateNotifications(updates);
+
+      case "data":
+        return updateData(updates);
+
+      default:
+        console.warn("Unknown user section:", section);
+        return false;
+    }
+  };
+
+  const toggleDrawerSwipe = async () => {
+    await updateUserSection("prefs", {
+      drawer_swipe_rtl: !drawerSwipeRTL,
+    });
+  };
+
+  const toggleNotifications = async (key) => {
+    await updateUserSection("notifications", {
+      [key]: !notifications[key],
+    });
+  };
+
+  const updateBusinessName = async (businessName) => {
+    await updateUserSection("data", {
+      business_name: businessName,
+    });
+  };
+
+  const updateRole = async (role) => {
+    await updateUserSection("data", {
+      role,
+    });
   };
 
   return (
@@ -81,37 +117,38 @@ export default function SectionSettings({
         </h4>
 
         <div className="space-y-2 text-xs">
-          {/* Name */}
+          {/* Full Name */}
           <div
-            className={`
-        flex justify-between
-        ${isRTL ? "flex-row-reverse" : "flex-row"}
-      `}
+            className={`flex justify-between ${
+              isRTL ? "flex-row-reverse" : "flex-row"
+            }`}
           >
             <span className="text-gray-400">{t("name")}</span>
             <span className="text-gray-300">{user?.data?.full_name || ""}</span>
           </div>
 
-          {/* Business */}
+          {/* Business Name */}
           <div
-            className={`
-        flex justify-between
-        ${isRTL ? "flex-row-reverse" : "flex-row"}
-      `}
+            className={`flex justify-between ${
+              isRTL ? "flex-row-reverse" : "flex-row"
+            }`}
+            onClick={updateBusinessName}
           >
             <span className="text-gray-400">{t("business")}</span>
-            <span className="text-gray-300">Coffee Shop</span>
+            <span className="text-gray-300">
+              {user?.data?.business_name || ""}
+            </span>
           </div>
 
           {/* Role */}
           <div
-            className={`
-        flex justify-between
-        ${isRTL ? "flex-row-reverse" : "flex-row"}
-      `}
+            onClick={updateRole}
+            className={`flex justify-between ${
+              isRTL ? "flex-row-reverse" : "flex-row"
+            }`}
           >
             <span className="text-gray-400">{t("role")}</span>
-            <span className="text-gray-300">{t("owner")}</span>
+            <span className="text-gray-300">{t(user?.data?.role) || ""}</span>
           </div>
         </div>
 
@@ -131,6 +168,46 @@ export default function SectionSettings({
         >
           {t("logout")}
         </button>
+      </div>
+
+      {/* PREFERENCES */}
+      <div className="bg-[#141B28] rounded-xl p-4 border border-[#C1A875]/10 hover:border-[#C1A875]/30 transition-colors">
+        <h4
+          className={`text-sm font-semibold text-white mb-3 ${
+            isRTL ? "text-right" : "text-left"
+          }`}
+        >
+          {t("preferences")}
+        </h4>
+
+        <div
+          className={`flex items-center justify-between ${
+            isRTL ? "flex-row-reverse" : "flex-row"
+          }`}
+        >
+          <span className="text-xs text-gray-300">
+            {t("drawerSwipeDirection")}
+          </span>
+
+          {/* Toggle */}
+          <div
+            onClick={toggleDrawerSwipe}
+            className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${
+              drawerSwipeRTL ? "bg-[#C1A875]" : "bg-gray-600"
+            }`}
+          >
+            <div
+              className={`
+                          absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all
+                          ${
+                            drawerSwipeRTL
+                              ? "right-0.5 left-auto"
+                              : "left-0.5 right-auto"
+                          }
+                        `}
+            />
+          </div>
+        </div>
       </div>
 
       {/* NOTIFICATIONS */}
@@ -159,11 +236,9 @@ export default function SectionSettings({
 
               {/* Toggle */}
               <div
-                onClick={() => toggleSetting(item.key)}
+                onClick={() => toggleNotifications(item.key)}
                 className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${
-                  notificationSettings[item.key]
-                    ? "bg-[#C1A875]"
-                    : "bg-gray-600"
+                  notifications[item.key] ? "bg-[#C1A875]" : "bg-gray-600"
                 }`}
               >
                 <div
@@ -171,10 +246,10 @@ export default function SectionSettings({
               absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all
               ${
                 isRTL
-                  ? notificationSettings[item.key]
+                  ? notifications[item.key]
                     ? "left-0.5 right-auto"
                     : "right-0.5 left-auto"
-                  : notificationSettings[item.key]
+                  : notifications[item.key]
                   ? "right-0.5 left-auto"
                   : "left-0.5 right-auto"
               }

@@ -16,6 +16,7 @@ export const userModel = {
     voice_profile: {},
     last_login_method: "", // "popup" | "redirect"
     last_login_time: null,
+    drawer_swipe_rtl: true, // Drawer swipe direction: true = Right → Left (default)
   },
   data: {
     id_number: "",
@@ -23,13 +24,16 @@ export const userModel = {
     email: "",
     full_name: "",
     phone: "",
-    role: "user", // user | admin
+
+    business_name: "", // NEW
+
+    role: "Owner", // Owner | Manager | Worker
+
     created_at: null,
     updated_at: null,
     is_admin: false,
     is_developer: false,
 
-    // 🏠 Address fields for payment / billing
     street: "",
     city: "",
     zip: "",
