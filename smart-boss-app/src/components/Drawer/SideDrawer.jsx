@@ -18,10 +18,10 @@ import {
   Settings as SettingsIcon,
   Minus,
 } from "lucide-react";
-
 import { useLanguage } from "../../hooks/useLanguage";
 import { drawerData } from "../../mocks/mokeData";
 import { APP_VERSION } from "../../version";
+import { UserStore } from "../../data-access/UserStore";
 
 // New sub components
 import DrawerHeader from "./DrawerHeader";
@@ -36,6 +36,8 @@ const SectionQueue = lazy(() => import("./sections/SectionQueue"));
 const SectionBusiness = lazy(() => import("./sections/SectionBusiness"));
 const SectionSettings = lazy(() => import("./sections/SectionSettings"));
 
+const SWIPE_THRESHOLD = 80;
+
 export default function SideDrawer({
   isOpen,
   onClose,
@@ -45,6 +47,7 @@ export default function SideDrawer({
 }) {
   const { isRTL, language, t, toggleLanguage } = useLanguage();
   const data = drawerData[language];
+  const user = UserStore((s) => s.user);
 
   const [alertFilters, setAlertFilters] = useState({});
   const [businessFilters, setBusinessFilters] = useState({});
@@ -64,6 +67,8 @@ export default function SideDrawer({
     }
   };
 
+  const isSwipeRTL = user?.prefs?.drawer_swipe_rtl ?? true;
+
   const handleTouchStart = (e) => {
     if (desktopMode) return;
     touchStartX.current = e.touches[0].clientX;
@@ -72,9 +77,23 @@ export default function SideDrawer({
 
   const handleTouchEnd = (e) => {
     if (desktopMode) return;
+    if (!isOpen) return; // Guard: drawer closed → ignore
+
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
-    if (Math.abs(dx) > Math.abs(dy) && dx > 80) onClose();
+
+    // Ignore vertical swipes
+    if (Math.abs(dx) <= Math.abs(dy)) return;
+
+    const isSwipeRTL = user?.prefs?.drawer_swipe_rtl ?? true;
+
+    const shouldClose = isSwipeRTL
+      ? dx > SWIPE_THRESHOLD // RTL: close L → R
+      : dx < -SWIPE_THRESHOLD; // LTR: close R → L
+
+    if (shouldClose) {
+      onClose();
+    }
   };
 
   /* Build sections list */
@@ -216,14 +235,14 @@ export default function SideDrawer({
 
       <div
         className={`
-        fixed top-0 bottom-0 ${isRTL ? "right-0" : "left-0"}
+        fixed top-0 bottom-0 ${isSwipeRTL ? "right-0" : "left-0"}
         w-full bg-[#0A0F18] z-50 transform transition-transform duration-300
         ${
           isOpen
             ? "translate-x-0"
-            : isRTL
-            ? "translate-x-full" //hide to the right in RTL
-            : "-translate-x-full" //hide to the left in LTR
+            : isSwipeRTL
+            ? "translate-x-full" // hide to the right in RTL
+            : "-translate-x-full" // hide to the left in LTR
         }
       `}
         onTouchStart={handleTouchStart}

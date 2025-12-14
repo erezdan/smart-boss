@@ -261,8 +261,12 @@ const translations = {
     he: "העדפות",
   },
   drawerSwipeDirection: {
-    en: "Drawer Swipe Direction",
+    en: "Drawer Swipe From Right To Left",
     he: "גרירת מגירה מימין לשמאל",
+  },
+  appVersion: {
+    en: "App Version",
+    he: "גרסת האפליקציה",
   },
 };
 
