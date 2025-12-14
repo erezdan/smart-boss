@@ -27,7 +27,7 @@ export const userModel = {
 
     business_name: "", // NEW
 
-    role: "Owner", // Owner | Manager | Worker
+    role: "owner", // owner | manager | employee
 
     created_at: null,
     updated_at: null,

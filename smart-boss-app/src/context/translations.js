@@ -183,6 +183,14 @@ const translations = {
     en: "Owner",
     he: "בעלים",
   },
+  manager: {
+    en: "Manager",
+    he: "מנהל",
+  },
+  employee: {
+    en: "Employee",
+    he: "עובד",
+  },
   notifications: {
     en: "Notifications",
     he: "התראות",
