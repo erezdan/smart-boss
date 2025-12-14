@@ -52,6 +52,11 @@ export default function SideDrawer({
   const [alertFilters, setAlertFilters] = useState({});
   const [businessFilters, setBusinessFilters] = useState({});
 
+  const isHorizontalScrollRef = useRef(false);
+  const bottomNavRef = useRef(null);
+  const startScrollLeftRef = useRef(0);
+  const startedInBottomNavRef = useRef(false);
+
   /* Touch for mobile */
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
@@ -71,25 +76,42 @@ export default function SideDrawer({
 
   const handleTouchStart = (e) => {
     if (desktopMode) return;
+
+    isHorizontalScrollRef.current = false;
+
+    const target = e.target;
+    startedInBottomNavRef.current = !!target.closest("[data-bottom-nav]");
+
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
   };
 
+  const handleTouchMove = () => {
+    if (!bottomNavRef.current) return;
+
+    const currentScrollLeft = bottomNavRef.current.scrollLeft;
+
+    if (currentScrollLeft !== startScrollLeftRef.current) {
+      isHorizontalScrollRef.current = true;
+    }
+  };
+
   const handleTouchEnd = (e) => {
     if (desktopMode) return;
-    if (!isOpen) return; // Guard: drawer closed → ignore
+    if (!isOpen) return;
+
+    if (startedInBottomNavRef.current) return;
 
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
 
-    // Ignore vertical swipes
     if (Math.abs(dx) <= Math.abs(dy)) return;
 
     const isSwipeRTL = user?.prefs?.drawer_swipe_rtl ?? true;
 
     const shouldClose = isSwipeRTL
-      ? dx > SWIPE_THRESHOLD // RTL: close L → R
-      : dx < -SWIPE_THRESHOLD; // LTR: close R → L
+      ? dx > SWIPE_THRESHOLD
+      : dx < -SWIPE_THRESHOLD;
 
     if (shouldClose) {
       onClose();
@@ -246,6 +268,7 @@ export default function SideDrawer({
         }
       `}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         <div className="h-full flex flex-col">
@@ -307,13 +330,15 @@ export default function SideDrawer({
           {/* ============================
             4) Bottom navigation
            ============================ */}
-          <DrawerSectionList
-            sections={sections}
-            activeSection={activeSection}
-            onSectionChange={onSectionChange}
-            isRTL={isRTL}
-            desktopMode={false}
-          />
+          <div data-bottom-nav>
+            <DrawerSectionList
+              sections={sections}
+              activeSection={activeSection}
+              onSectionChange={onSectionChange}
+              isRTL={isRTL}
+              desktopMode={false}
+            />
+          </div>
         </div>
       </div>
     </>
