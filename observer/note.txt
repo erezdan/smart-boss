@@ -3,8 +3,21 @@ visual model (Local, High-Frequency):
 CLIP ViT-B/16
 512 dimensions
 
+python packages for CLIP models use
+
+pip install torch torchvision torchaudio
+pip install transformers pillow
+pip install qdrant-client
 
 textual model (Cloud, Low-Frequency):
 ====================================
 text-embedding-3-large
 3072 dimensions
+
+run the virtual environment
+===========================
+.\.venv\Scripts\Activate.ps1
+
+creating requirements.txt comand
+================================
+pip freeze > requirements.txt
