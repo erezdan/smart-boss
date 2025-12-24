@@ -1,0 +1,10 @@
+visual model (Local, High-Frequency):
+====================================
+CLIP ViT-B/16
+512 dimensions
+
+
+textual model (Cloud, Low-Frequency):
+====================================
+text-embedding-3-large
+3072 dimensions

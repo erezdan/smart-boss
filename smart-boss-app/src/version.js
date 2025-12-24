@@ -1,3 +1,3 @@
 // This file is auto-generated
-export const APP_VERSION = "0.1.0.46";
+export const APP_VERSION = "0.1.0.47";
 export const APP_CACHE_VERSION = "0.4";

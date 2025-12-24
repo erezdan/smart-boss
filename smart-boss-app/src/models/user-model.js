@@ -16,7 +16,7 @@ export const userModel = {
     voice_profile: {},
     last_login_method: "", // "popup" | "redirect"
     last_login_time: null,
-    drawer_swipe_rtl: true, // Drawer swipe direction: true = Right → Left (default)
+    drawer_swipe_rtl: false, // Drawer swipe direction: true = Right → Left (default)
   },
   data: {
     id_number: "",

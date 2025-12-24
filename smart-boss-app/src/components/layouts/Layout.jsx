@@ -27,7 +27,21 @@ export default function Layout() {
   const handleTouchStart = (e) => {
     if (isDrawerOpen) return;
 
-    touchStartX.current = normalizeX(e.touches[0].clientX);
+    const rawX = e.touches[0].clientX;
+    const screenWidth = window.innerWidth;
+    const isSwipeRTL = swipeRTLRef.current;
+
+    // Allow gesture only from the correct screen edge
+    const validEdge = isSwipeRTL
+      ? rawX > screenWidth - EDGE_THRESHOLD // right edge
+      : rawX < EDGE_THRESHOLD; // left edge
+
+    if (!validEdge) {
+      touchStartX.current = null;
+      return;
+    }
+
+    touchStartX.current = normalizeX(rawX);
     touchStartY.current = e.touches[0].clientY;
   };
 
