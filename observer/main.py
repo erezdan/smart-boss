@@ -1,7 +1,7 @@
 import asyncio
 import time
 from pathlib import Path
-from embeddings_models.clip_embeddings import embed_image
+from embeddings.clip_embeddings import embed_image
 
 
 async def main():
