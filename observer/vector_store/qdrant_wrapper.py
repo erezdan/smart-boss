@@ -1,11 +1,12 @@
 from typing import List, Optional
 from uuid import uuid4
+from typing import Any
 
 from utils.logger import logger
 
 try:
     from qdrant_client import QdrantClient
-    from qdrant_client.models import VectorParams, Distance, PointStruct
+    from qdrant_client.models import VectorParams, Distance, PointStruct, Prefetch, SearchRequest
 except ImportError:
     QdrantClient = None
     VectorParams = None
@@ -28,7 +29,11 @@ class QdrantClientWrapper:
             raise RuntimeError("qdrant-client is not installed")
 
         try:
-            self._client = QdrantClient(host=host, port=port)
+            self._client = QdrantClient(
+                host=host,
+                port=port,
+                prefer_grpc=False,
+            )
         except Exception as e:
             logger.error("Failed to initialize Qdrant client", exc_info=e)
             raise
@@ -37,7 +42,7 @@ class QdrantClientWrapper:
         self,
         collection_name: str,
         vector_size: int,
-        distance: Distance = Distance.COSINE,
+        distance: Any = Distance.COSINE,
     ) -> None:
         """
         Ensure a collection exists with the given vector configuration.
@@ -102,18 +107,17 @@ class QdrantClientWrapper:
     def search(
         self,
         collection_name: str,
-        vector: List[float],
+        vector: list[float],
         limit: int,
-        score_threshold: Optional[float] = None,
+        score_threshold: float | None = None,
     ):
         """
-        Perform similarity search.
-        Returns raw Qdrant hits.
+        Vector similarity search (Qdrant Python SDK).
         """
         try:
-            return self._client.search(
+            return self._client.query_points(
                 collection_name=collection_name,
-                query_vector=vector,
+                query=vector,
                 limit=limit,
                 score_threshold=score_threshold,
             )

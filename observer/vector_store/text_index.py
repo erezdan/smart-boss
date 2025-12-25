@@ -4,7 +4,7 @@ from time import time
 from qdrant_client.models import Distance
 
 from utils.logger import logger
-from vector_store.qdrant_client import QdrantClientWrapper
+from vector_store.qdrant_wrapper import QdrantClientWrapper
 
 
 class TextIndex:

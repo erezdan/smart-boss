@@ -5,7 +5,7 @@ from utils.logger import logger
 from cameras.camera_events import SnapshotEvent
 from embeddings.clip_embeddings import embed_image
 
-from vector_store.qdrant_client import QdrantClientWrapper
+from vector_store.qdrant_wrapper import QdrantClientWrapper
 from vector_store.image_index import ImageIndex
 
 

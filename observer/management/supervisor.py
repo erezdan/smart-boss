@@ -2,6 +2,8 @@ import signal
 import sys
 import time
 import asyncio
+import asyncio
+import threading
 from utils.logger import logger
 from cameras.camera_manager import CameraManager
 from processing.image_pipeline import ImagePipeline
@@ -20,11 +22,32 @@ class Supervisor:
         self.qt_app = None
         self._running = False
         self.image_pipeline = ImagePipeline()
+        self._loop = None
+        self._loop_thread = None
 
     def start(self):
         logger.log("Supervisor starting")
 
         try:
+            # -------------------------------------------------
+            # 1. Create a dedicated asyncio event loop (background)
+            # -------------------------------------------------
+            self._loop = asyncio.new_event_loop()
+
+            def _run_loop(loop: asyncio.AbstractEventLoop):
+                asyncio.set_event_loop(loop)
+                loop.run_forever()
+
+            self._loop_thread = threading.Thread(
+                target=_run_loop,
+                args=(self._loop,),
+                daemon=True,
+            )
+            self._loop_thread.start()
+
+            # -------------------------------------------------
+            # 2. Initialize CameraManager (sync world)
+            # -------------------------------------------------
             self.camera_manager = CameraManager(
                 config_path=self.cameras_config_path,
                 on_camera_snapshot=self.on_camera_snapshot,
@@ -32,16 +55,30 @@ class Supervisor:
 
             self.camera_manager.load()
             self.camera_manager.start()
+
+            # Qt app (if exists)
             self.qt_app = self.camera_manager._qt_app
 
             self._running = True
             logger.log("Supervisor started")
 
         except Exception as e:
-            # Fatal: application cannot continue without CameraManager
+            # -------------------------------------------------
+            # Fatal: application cannot continue
+            # -------------------------------------------------
             logger.error("Supervisor failed to start", exc_info=e)
+
             self._running = False
+
+            # Best-effort cleanup
+            try:
+                if getattr(self, "_loop", None):
+                    self._loop.call_soon_threadsafe(self._loop.stop)
+            except Exception:
+                pass
+
             raise
+
 
     def stop(self):
         if not self._running:
@@ -65,8 +102,9 @@ class Supervisor:
         This callback must never raise exceptions.
         """
         try:
-            asyncio.create_task(
-                self.image_pipeline.process_snapshot(snapshot_event)
+            asyncio.run_coroutine_threadsafe(
+                self.image_pipeline.process_snapshot(snapshot_event),
+                self._loop,
             )
         except Exception as e:
             logger.error("Failed to dispatch snapshot to image pipeline", exc_info=e)
