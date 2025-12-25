@@ -1,8 +1,10 @@
 import signal
 import sys
 import time
+import asyncio
 from utils.logger import logger
 from cameras.camera_manager import CameraManager
+from processing.image_pipeline import ImagePipeline
 
 
 class Supervisor:
@@ -17,6 +19,7 @@ class Supervisor:
         self.camera_manager = None
         self.qt_app = None
         self._running = False
+        self.image_pipeline = ImagePipeline()
 
     def start(self):
         logger.log("Supervisor starting")
@@ -62,12 +65,11 @@ class Supervisor:
         This callback must never raise exceptions.
         """
         try:
-            # Do NOT add verbose logging here.
-            # Snapshot events may occur very frequently and can flood logs.
-            pass
+            asyncio.create_task(
+                self.image_pipeline.process_snapshot(snapshot_event)
+            )
         except Exception as e:
-            # Safety net: never allow callback failures to propagate
-            logger.error("Unhandled error in on_camera_snapshot", exc_info=e)
+            logger.error("Failed to dispatch snapshot to image pipeline", exc_info=e)
 
     def run_forever(self):
         def handle_signal(signum, frame):
