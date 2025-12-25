@@ -1,60 +1,124 @@
 import io
 import asyncio
+import threading
+from typing import List
+
 from PIL import Image
 import torch
 from transformers import CLIPModel, CLIPProcessor
 
-# Load model and processor ONCE (module-level, important for performance)
+from utils.logger import logger
+
+
+# Model name (centralized)
 _MODEL_NAME = "openai/clip-vit-base-patch16"
 
+# Module-level singletons
 _clip_model: CLIPModel | None = None
 _clip_processor: CLIPProcessor | None = None
+_model_lock = threading.Lock()
 
 
 def _load_clip():
+    """
+    Load CLIP model and processor once.
+    Thread-safe and crash-safe.
+    """
     global _clip_model, _clip_processor
 
-    if _clip_model is None or _clip_processor is None:
-        _clip_model = CLIPModel.from_pretrained(_MODEL_NAME)
-        _clip_processor = CLIPProcessor.from_pretrained(_MODEL_NAME)
-        _clip_model.eval()
+    if _clip_model is not None and _clip_processor is not None:
+        return
+
+    with _model_lock:
+        if _clip_model is not None and _clip_processor is not None:
+            return
+
+        try:
+            logger.log(f"Loading CLIP model '{_MODEL_NAME}'")
+
+            _clip_model = CLIPModel.from_pretrained(_MODEL_NAME)
+            _clip_processor = CLIPProcessor.from_pretrained(_MODEL_NAME)
+
+            _clip_model.eval()
+
+            # Ensure model is on correct device (CPU by default)
+            _clip_model.to("cpu")
+
+            logger.log("CLIP model loaded successfully")
+
+        except Exception as e:
+            # Fatal: cannot embed images without a model
+            logger.error("Failed to load CLIP model", exc_info=e)
+            _clip_model = None
+            _clip_processor = None
+            raise
 
 
-def _embed_image_sync(image_buffer: bytes) -> list[float]:
+def _embed_image_sync(image_buffer: bytes) -> List[float]:
     """
     Synchronous CLIP image embedding.
-    This function is CPU-bound and should NOT be called directly.
+    CPU-bound. Must never raise silently.
     """
+    try:
+        _load_clip()
 
-    _load_clip()
+        if not image_buffer:
+            raise ValueError("Empty image buffer")
 
-    image = Image.open(io.BytesIO(image_buffer)).convert("RGB")
+        try:
+            image = Image.open(io.BytesIO(image_buffer)).convert("RGB")
+        except Exception as e:
+            raise ValueError("Invalid image buffer") from e
 
-    inputs = _clip_processor(images=image, return_tensors="pt")
+        try:
+            inputs = _clip_processor(images=image, return_tensors="pt")
+        except Exception as e:
+            raise RuntimeError("CLIP processor failed") from e
 
-    with torch.no_grad():
-        features = _clip_model.get_image_features(**inputs)
+        with torch.no_grad():
+            try:
+                features = _clip_model.get_image_features(**inputs)
+            except Exception as e:
+                raise RuntimeError("CLIP model inference failed") from e
 
-    # L2 normalization (critical for cosine similarity)
-    features = features / features.norm(p=2, dim=-1, keepdim=True)
+        # L2 normalization (required for cosine similarity)
+        try:
+            features = features / features.norm(p=2, dim=-1, keepdim=True)
+        except Exception as e:
+            raise RuntimeError("Failed to normalize CLIP features") from e
 
-    return features[0].tolist()
+        embedding = features[0].tolist()
+
+        if not embedding:
+            raise RuntimeError("Empty embedding generated")
+
+        return embedding
+
+    except Exception as e:
+        # Log once per failure, never swallow silently
+        logger.error("Image embedding failed", exc_info=e)
+        raise
 
 
-async def embed_image(image_buffer: bytes) -> list[float]:
+async def embed_image(image_buffer: bytes) -> List[float]:
     """
     Async wrapper for CLIP image embedding.
 
-    Can be awaited safely.
-    Offloads CPU work to a thread executor.
+    Safe to await.
+    Offloads CPU-bound work to thread executor.
     """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError as e:
+        logger.error("embed_image called outside of an event loop", exc_info=e)
+        raise
 
-    loop = asyncio.get_running_loop()
-
-    embedding = await loop.run_in_executor(
-        None,
-        _embed_image_sync,
-        image_buffer
-    )
-
-    return embedding
+    try:
+        return await loop.run_in_executor(
+            None,
+            _embed_image_sync,
+            image_buffer,
+        )
+    except Exception:
+        # Error already logged in sync function
+        raise
