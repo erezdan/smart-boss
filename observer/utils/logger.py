@@ -25,7 +25,8 @@ class _Logger:
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_line = f"[{timestamp}] [{level.upper()}] {message}\n"
-
+        print(log_line)
+        
         with self._lock:
             with open(self._get_log_file_path(), "a", encoding="utf-8") as f:
                 f.write(log_line)

@@ -36,6 +36,7 @@ class CameraClient:
 
         self._running = True
         self.camera_source.start()
+        self.camera_source.play()
 
         self._thread = threading.Thread(
             target=self._snapshot_loop, daemon=True

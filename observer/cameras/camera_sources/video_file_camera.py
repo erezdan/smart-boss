@@ -26,8 +26,6 @@ class VideoFileCamera:
         if self._running:
             return
 
-        logger.log(f"Starting VideoFileCamera: {self.video_path}")
-
         self._cap = cv2.VideoCapture(self.video_path)
         if not self._cap.isOpened():
             logger.error(f"Failed to open video file: {self.video_path}")
@@ -36,6 +34,8 @@ class VideoFileCamera:
         self._running = True
         self._thread = threading.Thread(target=self._read_loop, daemon=True)
         self._thread.start()
+
+        logger.log("VideoFileCamera read thread started")
 
     def stop(self):
         self._running = False

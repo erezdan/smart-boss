@@ -9,7 +9,7 @@
       "source": {
         "video_path": "C:\\DEV\\smart-boss\\observer\\cameras\\devtools\\videos\\seller_ignore_the_customer.mp4",
         "loop": true,
-        "start_paused": true
+        "start_paused": false
       },
 
       "snapshot_policy": {

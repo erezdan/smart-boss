@@ -1,5 +1,6 @@
 import signal
 import sys
+import time
 from utils.logger import logger
 from cameras.camera_manager import CameraManager
 
@@ -21,9 +22,9 @@ class Supervisor:
             config_path=self.cameras_config_path,
             on_camera_snapshot=self.on_camera_snapshot,
         )
-
         self.camera_manager.load()
         self.camera_manager.start()
+        self.qt_app = self.camera_manager._qt_app
 
         self._running = True
         logger.log("Supervisor started")
@@ -51,9 +52,6 @@ class Supervisor:
         )
 
     def run_forever(self):
-        """
-        Blocks main thread until termination signal.
-        """
         def handle_signal(signum, frame):
             logger.log(f"Signal {signum} received")
             self.stop()
@@ -63,4 +61,6 @@ class Supervisor:
         signal.signal(signal.SIGTERM, handle_signal)
 
         logger.log("Supervisor running (Ctrl+C to stop)")
-        signal.pause()
+
+        while True:
+            time.sleep(1)
