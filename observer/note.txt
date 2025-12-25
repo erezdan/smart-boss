@@ -21,3 +21,9 @@ run the virtual environment
 creating requirements.txt comand
 ================================
 pip freeze > requirements.txt
+
+screen recorder
+===============
+OBS Studio (installed)
+use ALT to shrink the window
+right click on the screen -> Transform → Fit to Screen

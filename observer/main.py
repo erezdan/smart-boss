@@ -1,28 +1,17 @@
-import asyncio
-import time
-from pathlib import Path
-from embeddings.clip_embeddings import embed_image
+from management.supervisor import Supervisor
+from utils.logger import logger
 
 
-async def main():
-    image_path = Path("images/cosmetics_shop_1.jpg")
-    image_buffer = image_path.read_bytes()
+def main():
+    logger.log("Application starting")
 
-    while True:
-        start_time = time.perf_counter()
+    supervisor = Supervisor(
+        cameras_config_path="cameras_config.json"
+    )
 
-        embedding = await embed_image(image_buffer)
-
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
-
-        print(
-            f"File: {image_path.name} | "
-            f"Embedding size: {len(embedding)} | "
-            f"Time: {elapsed_ms:.2f} ms"
-        )
-
-        await asyncio.sleep(5)
+    supervisor.start()
+    supervisor.run_forever()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
