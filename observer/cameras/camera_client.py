@@ -1,5 +1,6 @@
 import threading
 import time
+import cv2
 from typing import Callable, Dict
 
 from utils.logger import logger
@@ -70,13 +71,28 @@ class CameraClient:
             f"(interval={interval}s)"
         )
 
+        resize_percent = self.snapshot_policy.get("resize_percent", 50)
+        
         while self._running:
             frame = self.camera_source.get_snapshot()
 
             if frame is not None:
+                resized_frame = frame
+
+                if resize_percent < 100:
+                    height, width = frame.shape[:2]
+                    new_width = int(width * resize_percent / 100)
+                    new_height = int(height * resize_percent / 100)
+
+                    resized_frame = cv2.resize(
+                        frame,
+                        (new_width, new_height),
+                        interpolation=cv2.INTER_AREA
+                    )
+
                 event = SnapshotEvent(
                     camera_id=self.camera_id,
-                    frame=frame,
+                    frame=resized_frame,
                     timestamp=time.time(),
                 )
                 self.on_snapshot(event)

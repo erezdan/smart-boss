@@ -14,7 +14,8 @@
 
       "snapshot_policy": {
         "mode": "interval",
-        "interval_seconds": 2
+        "interval_seconds": 2,
+        "resize_percent": 80
       },
       "dev": {
         "ui_enabled": true
