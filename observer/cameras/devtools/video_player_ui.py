@@ -11,22 +11,42 @@ from utils.logger import logger
 
 class VideoPlayerUI(QWidget):
     """
-    Dev-only UI that observes a VideoFileCamera.
-    Uses QTimer (GUI thread safe).
+    Dev-only UI that observes a camera source.
+    Uses QTimer (GUI-thread safe).
+    Must never crash the application.
     """
 
     def __init__(self, camera, window_title=None):
         super().__init__()
 
         self.camera = camera
+        self._running = True
 
-        self._setup_ui(window_title or camera.video_path)
+        try:
+            self._setup_ui(window_title or getattr(camera, "video_path", "Camera"))
+        except Exception as e:
+            # Fatal for this UI only
+            logger.error("Failed to setup VideoPlayerUI", exc_info=e)
+            return
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._on_timer)
         self.timer.start(30)
 
         logger.log("VideoPlayerUI started")
+
+    def closeEvent(self, event):
+        """
+        Ensure timer is stopped cleanly when the window is closed.
+        """
+        try:
+            self._running = False
+            if self.timer:
+                self.timer.stop()
+        except Exception:
+            pass
+
+        event.accept()
 
     def _setup_ui(self, title):
         self.setWindowTitle(title)
@@ -53,39 +73,68 @@ class VideoPlayerUI(QWidget):
         self.setLayout(layout)
 
     def play(self):
-        self.camera.play()
+        try:
+            self.camera.play()
+        except Exception as e:
+            # UI interaction must never propagate failures
+            logger.error("Error while calling camera.play()", exc_info=e)
 
     def pause(self):
-        self.camera.pause()
+        try:
+            self.camera.pause()
+        except Exception as e:
+            # UI interaction must never propagate failures
+            logger.error("Error while calling camera.pause()", exc_info=e)
 
     def _on_timer(self):
-        frame = self.camera.get_snapshot()
-        if frame is None:
+        """
+        QTimer callback.
+        Must never raise exceptions.
+        """
+        if not self._running:
             return
 
-        if self.video_label.text() == "Paused":
-            self.video_label.setText("")
+        try:
+            frame = self.camera.get_snapshot()
+            if frame is None:
+                return
 
-        self._update_ui(frame)
+            if self.video_label.text() == "Paused":
+                self.video_label.setText("")
+
+            self._update_ui(frame)
+
+        except Exception as e:
+            # Absolutely critical: GUI thread must not crash
+            logger.error("Unhandled error in VideoPlayerUI timer", exc_info=e)
 
     def _update_ui(self, frame):
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        h, w, ch = rgb.shape
-        bytes_per_line = ch * w
+        """
+        Update QLabel with a video frame.
+        Must be extremely defensive.
+        """
+        try:
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            h, w, ch = rgb.shape
+            bytes_per_line = ch * w
 
-        qimg = QImage(
-            rgb.data,
-            w,
-            h,
-            bytes_per_line,
-            QImage.Format_RGB888
-        )
+            qimg = QImage(
+                rgb.data,
+                w,
+                h,
+                bytes_per_line,
+                QImage.Format_RGB888,
+            )
 
-        pixmap = QPixmap.fromImage(qimg).scaled(
-            self.video_label.width(),
-            self.video_label.height(),
-            Qt.KeepAspectRatio,
-            Qt.SmoothTransformation,
-        )
+            pixmap = QPixmap.fromImage(qimg).scaled(
+                self.video_label.width(),
+                self.video_label.height(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
 
-        self.video_label.setPixmap(pixmap)
+            self.video_label.setPixmap(pixmap)
+
+        except Exception as e:
+            # Skip frame silently on rendering errors
+            logger.error("Failed to render frame in VideoPlayerUI", exc_info=e)

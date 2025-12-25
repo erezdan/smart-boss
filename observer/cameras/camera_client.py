@@ -11,6 +11,7 @@ class CameraClient:
     """
     Runtime consumer of a single camera source.
     Responsible for snapshot loop and policy handling.
+    Must never crash the application.
     """
 
     def __init__(
@@ -27,79 +28,142 @@ class CameraClient:
 
         self._running = False
         self._thread = None
+        self._lock = threading.Lock()
 
     def start(self):
-        if self._running:
-            return
+        with self._lock:
+            if self._running:
+                return
 
-        logger.log(f"Starting CameraClient {self.camera_id}")
+            logger.log(f"Starting CameraClient '{self.camera_id}'")
 
-        self._running = True
-        self.camera_source.start()
-        self.camera_source.play()
+            self._running = True
 
-        self._thread = threading.Thread(
-            target=self._snapshot_loop, daemon=True
-        )
-        self._thread.start()
+            try:
+                self.camera_source.start()
+                self.camera_source.play()
+            except Exception as e:
+                # Fatal for this camera: cannot run without a valid source
+                logger.error(
+                    f"Failed to start camera source for '{self.camera_id}'",
+                    exc_info=e,
+                )
+                self._running = False
+                return
+
+            self._thread = threading.Thread(
+                target=self._snapshot_loop,
+                name=f"CameraClient-{self.camera_id}",
+                daemon=True,
+            )
+            self._thread.start()
 
     def stop(self):
-        if not self._running:
-            return
+        with self._lock:
+            if not self._running:
+                return
 
-        logger.log(f"Stopping CameraClient {self.camera_id}")
+            logger.log(f"Stopping CameraClient '{self.camera_id}'")
+            self._running = False
 
-        self._running = False
-        self.camera_source.stop()
+            try:
+                self.camera_source.stop()
+            except Exception as e:
+                # Non-fatal: shutdown must continue
+                logger.error(
+                    f"Error while stopping camera source for '{self.camera_id}'",
+                    exc_info=e,
+                )
 
         if self._thread:
-            self._thread.join(timeout=1.0)
+            self._thread.join(timeout=2.0)
 
     def _snapshot_loop(self):
-        policy_mode = self.snapshot_policy.get("mode", "interval")
+        """
+        Internal snapshot loop.
+        This method runs in a background thread and must never raise.
+        """
+        try:
+            policy_mode = self.snapshot_policy.get("mode", "interval")
 
-        if policy_mode != "interval":
-            logger.warning(
-                f"Unsupported snapshot policy '{policy_mode}' "
-                f"for camera {self.camera_id}"
+            if policy_mode != "interval":
+                logger.error(
+                    f"Unsupported snapshot policy '{policy_mode}' "
+                    f"for camera '{self.camera_id}'"
+                )
+                return
+
+            interval = self.snapshot_policy.get("interval_seconds", 2)
+            resize_percent = self.snapshot_policy.get("resize_percent", 100)
+
+            logger.log(
+                f"CameraClient '{self.camera_id}' snapshot loop started "
+                f"(interval={interval}s, resize={resize_percent}%)"
             )
-            return
 
-        interval = self.snapshot_policy.get("interval_seconds", 2)
+            while self._running:
+                try:
+                    frame = self.camera_source.get_snapshot()
+                except Exception as e:
+                    # Camera source failure: wait and retry
+                    logger.error(
+                        f"Error retrieving frame from camera '{self.camera_id}'",
+                        exc_info=e,
+                    )
+                    time.sleep(interval)
+                    continue
 
-        logger.log(
-            f"CameraClient {self.camera_id} snapshot loop started "
-            f"(interval={interval}s)"
-        )
+                if frame is None:
+                    # Avoid log flooding on missing frames
+                    time.sleep(interval)
+                    continue
 
-        resize_percent = self.snapshot_policy.get("resize_percent", 50)
-        
-        while self._running:
-            frame = self.camera_source.get_snapshot()
-
-            if frame is not None:
-                resized_frame = frame
+                processed_frame = frame
 
                 if resize_percent < 100:
-                    height, width = frame.shape[:2]
-                    new_width = int(width * resize_percent / 100)
-                    new_height = int(height * resize_percent / 100)
+                    try:
+                        height, width = frame.shape[:2]
+                        new_width = int(width * resize_percent / 100)
+                        new_height = int(height * resize_percent / 100)
 
-                    resized_frame = cv2.resize(
-                        frame,
-                        (new_width, new_height),
-                        interpolation=cv2.INTER_AREA
-                    )
+                        processed_frame = cv2.resize(
+                            frame,
+                            (new_width, new_height),
+                            interpolation=cv2.INTER_AREA,
+                        )
+                    except Exception as e:
+                        # Skip this frame if resizing fails
+                        logger.error(
+                            f"Failed to resize frame for camera '{self.camera_id}'",
+                            exc_info=e,
+                        )
+                        time.sleep(interval)
+                        continue
 
                 event = SnapshotEvent(
                     camera_id=self.camera_id,
-                    frame=resized_frame,
+                    frame=processed_frame,
                     timestamp=time.time(),
                 )
-                self.on_snapshot(event)
-            else:
-                logger.warning(
-                    f"No frame available for camera {self.camera_id}"
-                )
 
-            time.sleep(interval)
+                try:
+                    self.on_snapshot(event)
+                except Exception as e:
+                    # Callback failures must never propagate
+                    logger.error(
+                        f"Snapshot callback failed for camera '{self.camera_id}'",
+                        exc_info=e,
+                    )
+
+                time.sleep(interval)
+
+        except Exception as e:
+            # Absolute safety net: this thread must never crash silently
+            logger.error(
+                f"Fatal error in snapshot loop for camera '{self.camera_id}'",
+                exc_info=e,
+            )
+        finally:
+            logger.log(
+                f"CameraClient '{self.camera_id}' snapshot loop stopped"
+            )

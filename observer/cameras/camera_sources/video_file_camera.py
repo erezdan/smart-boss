@@ -7,7 +7,8 @@ from utils.logger import logger
 class VideoFileCamera:
     """
     Camera source that reads frames from a local video file.
-    Can run headless or be observed by a UI.
+    Designed for long-running, fault-tolerant operation.
+    Must never crash the application.
     """
 
     def __init__(self, video_path: str, loop: bool = True, start_paused: bool = True):
@@ -26,63 +27,123 @@ class VideoFileCamera:
         if self._running:
             return
 
-        self._cap = cv2.VideoCapture(self.video_path)
-        if not self._cap.isOpened():
-            logger.error(f"Failed to open video file: {self.video_path}")
+        logger.log(f"Starting VideoFileCamera ({self.video_path})")
+
+        try:
+            self._cap = cv2.VideoCapture(self.video_path)
+            if not self._cap.isOpened():
+                raise RuntimeError(f"Failed to open video file: {self.video_path}")
+        except Exception as e:
+            # Fatal for this camera source
+            logger.error("Failed to initialize VideoFileCamera", exc_info=e)
+            self._cap = None
             return
 
         self._running = True
-        self._thread = threading.Thread(target=self._read_loop, daemon=True)
+        self._thread = threading.Thread(
+            target=self._read_loop,
+            name=f"VideoFileCamera-{self.video_path}",
+            daemon=True,
+        )
         self._thread.start()
 
-        logger.log("VideoFileCamera read thread started")
-
     def stop(self):
+        if not self._running:
+            return
+
+        logger.log("Stopping VideoFileCamera")
+
         self._running = False
 
         if self._thread:
-            self._thread.join(timeout=1.0)
+            self._thread.join(timeout=2.0)
+            self._thread = None
 
         if self._cap:
-            self._cap.release()
+            try:
+                self._cap.release()
+            except Exception as e:
+                # Non-fatal: release failures should not propagate
+                logger.error("Error while releasing VideoCapture", exc_info=e)
             self._cap = None
 
         logger.log("VideoFileCamera stopped")
 
     def play(self):
-        self._paused = False
-        logger.log("VideoFileCamera play")
+        with self._lock:
+            self._paused = False
 
     def pause(self):
-        self._paused = True
-        logger.log("VideoFileCamera pause")
+        with self._lock:
+            self._paused = True
 
     def get_snapshot(self):
         with self._lock:
             return self._last_frame
 
     def _read_loop(self):
-        fps = self._cap.get(cv2.CAP_PROP_FPS)
-        delay = 1.0 / fps if fps and fps > 0 else 0.04
+        """
+        Internal frame reading loop.
+        Runs in a background thread and must never raise.
+        """
+        try:
+            fps = 0.0
+            try:
+                fps = self._cap.get(cv2.CAP_PROP_FPS)
+            except Exception:
+                fps = 0.0
 
-        logger.log(f"VideoFileCamera read loop started (fps={fps})")
+            delay = 1.0 / fps if fps and fps > 0 else 0.04
 
-        while self._running:
-            if self._paused:
-                time.sleep(0.05)
-                continue
+            logger.log(
+                f"VideoFileCamera read loop started "
+                f"(fps={fps if fps else 'unknown'})"
+            )
 
-            ret, frame = self._cap.read()
+            while self._running:
+                with self._lock:
+                    paused = self._paused
 
-            if not ret:
-                if self.loop:
-                    self._cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                if paused:
+                    time.sleep(0.05)
                     continue
-                else:
-                    self._paused = True
+
+                try:
+                    ret, frame = self._cap.read()
+                except Exception as e:
+                    # VideoCapture read failure: wait and retry
+                    logger.error("Error reading frame from video file", exc_info=e)
+                    time.sleep(delay)
                     continue
 
-            with self._lock:
-                self._last_frame = frame
+                if not ret or frame is None:
+                    if self.loop:
+                        try:
+                            self._cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                        except Exception as e:
+                            logger.error(
+                                "Failed to rewind video file",
+                                exc_info=e,
+                            )
+                            time.sleep(delay)
+                        continue
+                    else:
+                        # End of video reached, pause silently
+                        with self._lock:
+                            self._paused = True
+                        time.sleep(delay)
+                        continue
 
-            time.sleep(delay)
+                with self._lock:
+                    self._last_frame = frame
+
+                time.sleep(delay)
+
+        except Exception as e:
+            # Absolute safety net: thread must never die silently
+            logger.error(
+                "Fatal error in VideoFileCamera read loop",
+                exc_info=e,
+            )
+        finally:
+            logger.log("VideoFileCamera read loop stopped")
