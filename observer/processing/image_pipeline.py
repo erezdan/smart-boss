@@ -30,6 +30,7 @@ class ImagePipeline:
             score_threshold=0.85,
             top_k=3,
         )
+        self.prev_image_embedding: dict[str, list[float]] = {}
 
     async def process_snapshot(self, event: SnapshotEvent) -> None:
         """
@@ -63,17 +64,24 @@ class ImagePipeline:
             )
             return
 
-        # 4. Similarity search (visual memory)
-        matches = self._image_index.search_similar(
-            embedding=embedding,
+        # 4. Similaryty against previos embeddings
+        matches = self._is_similar_to_previous_image(
             camera_id=event.camera_id,
-        )
-
+            new_embedding=embedding)
         if matches:
             # Similar image already exists -> no write, no VLM
             return
 
-        # 5. No similar image found -> store embedding
+        # 5. Similarity search (vector db)
+        matches = self._image_index.search_similar(
+            embedding=embedding,
+            camera_id=event.camera_id,
+        )
+        if matches:
+            # Similar image already exists -> no write, no VLM
+            return
+
+        # 6. No similar image found -> store embedding
         point_id = self._image_index.add(
             embedding=embedding,
             camera_id=event.camera_id,
@@ -100,3 +108,47 @@ class ImagePipeline:
         except Exception as e:
             logger.error("Failed to encode frame to JPEG", exc_info=e)
             return None
+        
+    def _is_similar_to_previous_image(
+        self,
+        camera_id: str,
+        new_embedding: list[float],
+        threshold: float = 0.95,
+    ) -> bool:
+        """
+        CLIP-native image-to-image similarity check.
+        Must never raise.
+        Assumes embeddings are L2-normalized.
+        """
+
+        try:
+            prev = self.prev_image_embedding.get(camera_id)
+
+            # First frame or invalid previous state
+            if prev is None:
+                self.prev_image_embedding[camera_id] = new_embedding
+                return False
+
+            # Defensive: length mismatch
+            if len(new_embedding) != len(prev):
+                self.prev_image_embedding[camera_id] = new_embedding
+                return False
+
+            similarity = sum(a * b for a, b in zip(new_embedding, prev))
+
+            # Update previous embedding only on meaningful change
+            if similarity < threshold:
+                self.prev_image_embedding[camera_id] = new_embedding
+
+            return similarity >= threshold
+
+        except Exception as e:
+            # Gate must never break the pipeline
+            logger.error(
+                "Local image similarity check failed",
+                exc_info=e,
+            )
+            self.prev_image_embedding[camera_id] = new_embedding
+            return False
+
+

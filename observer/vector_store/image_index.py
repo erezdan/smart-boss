@@ -1,5 +1,7 @@
 from typing import List, Optional
 from time import time
+from datetime import datetime
+from typing import List, Optional
 
 from qdrant_client.models import Distance
 
@@ -73,9 +75,15 @@ class ImageIndex:
         """
         Store a new image embedding in the index.
         """
+
+        ts = timestamp or time()
+
         payload = {
             "camera_id": camera_id,
-            "timestamp": timestamp or time(),
+            "timestamp": ts,  # raw unix timestamp (for logic / filtering)
+            "timestamp_str": datetime.fromtimestamp(ts).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),  # human-readable (for UI/debug)
         }
 
         if metadata:
