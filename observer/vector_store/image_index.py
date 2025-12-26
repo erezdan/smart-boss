@@ -38,33 +38,47 @@ class ImageIndex:
 
     def search_similar(
         self,
-        embedding: List[float],
+        embedding: list[float],
         camera_id: Optional[str] = None,
     ):
         """
-        Search for visually similar images.
+        Search for visually similar images from the last minute only.
         """
         try:
-            hits = self._qdrant.search(
+            response = self._qdrant.search(
                 collection_name=self.COLLECTION_NAME,
                 vector=embedding,
                 limit=self._top_k,
                 score_threshold=self._score_threshold,
             )
 
-            if camera_id:
-                # Optional filtering by camera_id at payload level
-                hits = [
-                    h for h in hits
-                    if h.payload and h.payload.get("camera_id") == camera_id
-                ]
+            hits = response.points  # List[ScoredPoint]
 
-            return hits
+            now = time()
+            cutoff = now - 60  # last 60 seconds
+
+            filtered = []
+            for h in hits:
+                payload = h.payload or {}
+
+                ts = payload.get("timestamp")
+                if ts is None or ts < cutoff:
+                    continue
+
+                if camera_id and payload.get("camera_id") != camera_id:
+                    continue
+
+                filtered.append(h)
+
+            return filtered
 
         except Exception as e:
-            logger.error("ImageIndex similarity search failed", exc_info=e)
+            logger.error(
+                "ImageIndex similarity search failed",
+                exc_info=e,
+            )
             return []
-
+    
     def add(
         self,
         embedding: List[float],
