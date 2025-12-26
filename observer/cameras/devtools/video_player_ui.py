@@ -51,7 +51,7 @@ class VideoPlayerUI(QWidget):
     def _setup_ui(self, title):
         self.setWindowTitle(title)
         self.setWindowFlags(Qt.Window)
-        self.resize(360, 240)
+        self.resize(660, 410)
 
         self.video_label = QLabel("Paused")
         self.video_label.setAlignment(Qt.AlignCenter)
