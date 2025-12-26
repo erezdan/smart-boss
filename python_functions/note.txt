@@ -1,0 +1,15 @@
+creating the environment
+========================
+python -m venv venv
+
+run the environment
+===================
+venv\Scripts\activate
+
+install packages
+================
+pip install -r requirements.txt
+
+run the functions on the localhost
+==================================
+python local_app.py

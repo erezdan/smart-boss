@@ -1,0 +1,17 @@
+all deployment
+===========
+firebase deploy
+
+all functions
+=========
+firebase deploy --only functions
+
+
+
+app deploy
+========
+firebase deploy --only hosting:smartboss-app
+
+function deploy (for example vlm_analyze)
+=============================
+firebase deploy --only functions:vlm_analyze
