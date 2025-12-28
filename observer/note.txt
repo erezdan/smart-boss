@@ -1,3 +1,7 @@
+Qdrant UI
+=========
+http://localhost:6333/dashboard
+
 visual model (Local, High-Frequency):
 ====================================
 CLIP ViT-B/16

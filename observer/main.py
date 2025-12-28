@@ -1,6 +1,9 @@
 import os
 from management.supervisor import Supervisor
 from utils.logger import logger
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 

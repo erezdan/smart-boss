@@ -7,7 +7,9 @@ from embeddings.clip_embeddings import embed_image
 
 from vector_store.qdrant_wrapper import QdrantClientWrapper
 from vector_store.image_index import ImageIndex
-
+from cloud.vlm_client import VLMClient
+from config import settings
+from prompts.image_analysis_prompt import build_image_analysis_prompt
 
 class ImagePipeline:
     """
@@ -80,6 +82,26 @@ class ImagePipeline:
         if matches:
             # Similar image already exists -> no write, no VLM
             return
+
+        # 6. Analyze the image with VLM
+        self._vlm = VLMClient(base_url=settings.VLM_BASE_URL)
+        prompt = build_image_analysis_prompt(
+            business_name="Video ABC",
+            business_type="Video Store",
+            camera_name="Front Counter",
+            camera_description="Facing the cashier and customer waiting area",
+            analysis_goal="Detect meaningful changes in customer flow and staff activity",
+            previous_state="One customer waiting at the counter",
+        )
+        analysis = self._vlm.analyze_image(
+            image_buffer=image_buffer,
+            prompt="",
+            model=settings.VLM_MODEL,
+            metadata={
+                "camera_id": event.camera_id,
+                "timestamp": event.timestamp,
+            },
+        )
 
         # 6. No similar image found -> store embedding
         point_id = self._image_index.add(

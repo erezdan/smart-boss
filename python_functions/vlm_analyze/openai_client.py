@@ -43,14 +43,17 @@ def run_vlm(prompt: str, image_base64: str, model: str):
             {
                 "role": "user",
                 "content": [
-                    {"type": "input_text", "text": prompt},
+                    {
+                        "type": "input_text",
+                        "text": prompt,
+                    },
                     {
                         "type": "input_image",
-                        "image_base64": image_base64
-                    }
-                ]
+                        "image_url": f"data:image/jpeg;base64,{image_base64}",
+                    },
+                ],
             }
-        ]
+        ],
     )
 
     return response

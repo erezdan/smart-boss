@@ -3,7 +3,8 @@ from time import time
 from datetime import datetime
 from typing import List, Optional
 
-from qdrant_client.models import Distance
+from qdrant_client.models import Distance # type: ignore[unused-import]
+from config import settings
 
 from utils.logger import logger
 from vector_store.qdrant_wrapper import QdrantClientWrapper
@@ -15,8 +16,8 @@ class ImageIndex:
     Represents visual memory.
     """
 
-    COLLECTION_NAME = "image_vectors"
-    VECTOR_SIZE = 512  # CLIP ViT-B/16
+    COLLECTION_NAME = settings.VECTOR_STORE_NAMESPACE
+    VECTOR_SIZE = settings.VECTOR_SIZE  # CLIP ViT-B/16
     DISTANCE = Distance.COSINE
 
     def __init__(

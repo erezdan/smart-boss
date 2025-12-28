@@ -1,3 +1,7 @@
+
+import sys
+print(sys.executable)
+
 import cv2
 
 from PySide6.QtWidgets import (
