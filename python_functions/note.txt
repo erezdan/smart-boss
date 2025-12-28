@@ -13,3 +13,12 @@ pip install -r requirements.txt
 run the functions on the localhost
 ==================================
 python local_app.py
+
+google secrets
+==============
+set the key command
+firebase functions:secrets:set SMARTBOSS_OPENAI_API_KEY
+run it fromt the project root
+
+see it in the google ui
+https://console.cloud.google.com
