@@ -78,15 +78,35 @@ Analyze the image and produce TWO outputs:
    - Avoid full sentences if possible.
    - Avoid opinions or business interpretation.
 
+=== CRITICAL SYSTEM INSTRUCTION ===
+
+You are generating output for an automated system.
+Your response will be parsed by code.
+
+You MUST follow the output format exactly.
+Do NOT add explanations, greetings, summaries, or any text outside the specified format.
+Do NOT wrap the output in quotes.
+Do NOT add Markdown.
+If the format is not followed exactly, the response will be considered invalid.
+   
 === OUTPUT FORMAT (MANDATORY) ===
 
-Return the result in the following exact format:
+Return the result EXACTLY in the following format, with no additional text before or after:
 
 RICH_DESCRIPTION:
 <text here>
 
 CLIP_DESCRIPTION:
 <text here>
+
+=== FORMAT EXAMPLE ===
+
+RICH_DESCRIPTION:
+Two customers are standing near the counter while one employee is handling items behind it.
+
+CLIP_DESCRIPTION:
+two people near counter, employee behind counter, shelves in background
+
 """
 
     return prompt.strip()

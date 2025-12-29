@@ -1,5 +1,6 @@
 import os
 from openai import OpenAI
+from typing import Optional, Dict, Any
 
 _client = None
 
@@ -34,7 +35,11 @@ def run_llm(prompt: str, model: str):
 
     return response
 
-def run_vlm(prompt: str, image_base64: str, model: str):
+def run_vlm(
+    prompt: str,
+    image_base64: str,
+    model: str,
+):
     client = get_openai_client()
 
     response = client.responses.create(

@@ -164,7 +164,7 @@ def _execute_model(data: Dict[str, Any]) -> Dict[str, Any]:
     model = data["model"]
     prompt = data["prompt"]
     metadata = data.get("metadata")
-
+    
     try:
         if mode == "llm":
             openai_response = run_llm(prompt=prompt, model=model)
@@ -174,7 +174,7 @@ def _execute_model(data: Dict[str, Any]) -> Dict[str, Any]:
             openai_response = run_vlm(
                 prompt=prompt,
                 image_base64=image_base64,
-                model=model
+                model=model,
             )
 
         else:

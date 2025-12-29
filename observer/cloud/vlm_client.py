@@ -1,4 +1,5 @@
 import base64
+import re
 from typing import Dict, Any, Optional
 
 from cloud.cloud_client import CloudClient, CloudClientError
@@ -41,10 +42,17 @@ class VLMClient:
                 path="vlm_analyze",
                 payload=payload,
             )
-            print(resp)
 
-            res = self._extract_openai_payload(resp)
-            return res
+            openai_response = self._extract_openai_payload(resp)
+            output_text = self._extract_output_text(openai_response)
+
+            parsed = self._parse_model_sections(output_text)
+
+            return {
+                "rich_text": parsed["rich_description"],
+                "clip_text": parsed["clip_description"],
+                "raw": openai_response,
+            }
 
         except CloudClientError as e:
             raise VLMAnalysisError("vlm_cloud_failed") from e
@@ -55,12 +63,79 @@ class VLMClient:
         except Exception as e:
             raise VLMAnalysisError("vlm_unexpected_error") from e
 
+    # -------- helpers --------
+
     @staticmethod
-    def extract_output_text(openai_response: dict) -> str:
+    def _extract_openai_payload(resp: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(resp, dict):
+            raise VLMAnalysisError("invalid_response_type")
+
+        result = resp.get("result")
+        if not isinstance(result, dict):
+            raise VLMAnalysisError("missing_result_section")
+
+        openai_response = result.get("openai_response")
+        if not isinstance(openai_response, dict):
+            raise VLMAnalysisError("missing_openai_response")
+
+        return openai_response
+
+    @staticmethod
+    def _extract_output_text(openai_response: Dict[str, Any]) -> str:
         for item in openai_response.get("output", []):
-            if item.get("type") == "message":
-                for block in item.get("content", []):
-                    if block.get("type") == "output_text":
-                        return block.get("text")
+            if item.get("type") != "message":
+                continue
+
+            for block in item.get("content", []):
+                if block.get("type") == "output_text":
+                    text = block.get("text")
+                    if isinstance(text, str) and text.strip():
+                        return text
 
         raise VLMAnalysisError("no_output_text_found")
+
+    @staticmethod
+    def _parse_model_sections(text: str) -> Dict[str, str]:
+        """
+        Parse model output with mandatory sections:
+
+        RICH_DESCRIPTION:
+        ...
+
+        CLIP_DESCRIPTION:
+        ...
+        """
+        if not isinstance(text, str):
+            raise VLMAnalysisError("model_output_not_text")
+
+        rich_match = re.search(
+            r"RICH_DESCRIPTION:\s*(.+?)(?:\n\s*\n|CLIP_DESCRIPTION:)",
+            text,
+            re.DOTALL | re.IGNORECASE,
+        )
+
+        clip_match = re.search(
+            r"CLIP_DESCRIPTION:\s*(.+)$",
+            text,
+            re.DOTALL | re.IGNORECASE,
+        )
+
+        if not rich_match:
+            raise VLMAnalysisError("missing_rich_description")
+
+        if not clip_match:
+            raise VLMAnalysisError("missing_clip_description")
+
+        rich_text = rich_match.group(1).strip()
+        clip_text = clip_match.group(1).strip()
+
+        if not rich_text:
+            raise VLMAnalysisError("empty_rich_description")
+
+        if not clip_text:
+            raise VLMAnalysisError("empty_clip_description")
+
+        return {
+            "rich_description": rich_text,
+            "clip_description": clip_text,
+        }
