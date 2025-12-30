@@ -34,6 +34,7 @@ class ImagePipeline:
             top_k=3,
         )
         self.prev_image_embedding: dict[str, list[float]] = {}
+        self._vlm = VLMClient(base_url=settings.VLM_BASE_URL)
 
     async def process_snapshot(self, event: SnapshotEvent) -> None:
         """
@@ -85,7 +86,6 @@ class ImagePipeline:
             return
 
         # 6. Analyze the image with VLM
-        self._vlm = VLMClient(base_url=settings.VLM_BASE_URL)
         prompt = build_image_analysis_prompt(
             business_name="Video ABC",
             business_type="Video Store",
@@ -104,21 +104,18 @@ class ImagePipeline:
             },
         )
 
-        print("Rich Text: " + analysis["rich_text"])
-        #print("Clip Text: " + analysis["clip_text"])
-
         # 6. No similar image found -> store embedding
         point_id = self._image_index.add(
             embedding=embedding,
             camera_id=event.camera_id,
             timestamp=event.timestamp,
+            clip_text=analysis["clip_text"],
         )
-
-        if point_id:
-            logger.log(
-                f"New image stored | camera={event.camera_id} "
-                f"point_id={point_id}"
+        if not point_id:
+            logger.error(
+                f"Failed to store new image embedding | camera={event.camera_id}"
             )
+
 
     def _frame_to_jpeg(self, frame) -> Optional[bytes]:
         """
@@ -176,5 +173,3 @@ class ImagePipeline:
             )
             self.prev_image_embedding[camera_id] = new_embedding
             return False
-
-

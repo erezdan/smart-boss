@@ -86,6 +86,7 @@ class ImageIndex:
         camera_id: str,
         timestamp: Optional[float] = None,
         metadata: Optional[dict] = None,
+        clip_text: Optional[str] = None,
     ) -> Optional[str]:
         """
         Store a new image embedding in the index.
@@ -94,11 +95,13 @@ class ImageIndex:
         ts = timestamp or time()
 
         payload = {
+            "type": "clip_image",
             "camera_id": camera_id,
             "timestamp": ts,  # raw unix timestamp (for logic / filtering)
             "timestamp_str": datetime.fromtimestamp(ts).strftime(
                 "%Y-%m-%d %H:%M:%S"
             ),  # human-readable (for UI/debug)
+            "clip_text": clip_text,
         }
 
         if metadata:
@@ -109,3 +112,38 @@ class ImageIndex:
             vector=embedding,
             payload=payload,
         )
+
+def add_clip_text(
+    self,
+    embedding: List[float],
+    clip_text: str,
+    camera_id: Optional[str] = None,
+    timestamp: Optional[float] = None,
+    metadata: Optional[dict] = None,
+) -> Optional[str]:
+    """
+    Store a CLIP text embedding in the index.
+    """
+
+    ts = timestamp or time()
+
+    payload = {
+        "type": "clip_text",
+        "clip_text": clip_text,
+        "timestamp": ts,
+        "timestamp_str": datetime.fromtimestamp(ts).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
+    }
+
+    if camera_id:
+        payload["camera_id"] = camera_id
+
+    if metadata:
+        payload.update(metadata)
+
+    return self._qdrant.upsert(
+        collection_name=self.COLLECTION_NAME,
+        vector=embedding,
+        payload=payload,
+    )

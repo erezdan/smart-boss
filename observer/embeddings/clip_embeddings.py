@@ -37,7 +37,10 @@ def _load_clip():
             logger.log(f"Loading CLIP model '{_MODEL_NAME}'")
 
             _clip_model = CLIPModel.from_pretrained(_MODEL_NAME)
-            _clip_processor = CLIPProcessor.from_pretrained(_MODEL_NAME)
+            _clip_processor = CLIPProcessor.from_pretrained(
+                _MODEL_NAME,
+                use_fast=False,
+            )
 
             _clip_model.eval()
 
@@ -118,6 +121,69 @@ async def embed_image(image_buffer: bytes) -> List[float]:
             None,
             _embed_image_sync,
             image_buffer,
+        )
+    except Exception:
+        # Error already logged in sync function
+        raise
+
+def _embed_text_sync(text: str) -> List[float]:
+    """
+    Synchronous CLIP text embedding.
+    CPU-bound. Must never raise silently.
+    """
+    try:
+        _load_clip()
+
+        if not text or not text.strip():
+            raise ValueError("Empty text input")
+
+        try:
+            inputs = _clip_processor(text=[text], return_tensors="pt", padding=True)
+        except Exception as e:
+            raise RuntimeError("CLIP processor failed for text") from e
+
+        with torch.no_grad():
+            try:
+                features = _clip_model.get_text_features(**inputs)
+            except Exception as e:
+                raise RuntimeError("CLIP text inference failed") from e
+
+        # L2 normalization (required for cosine similarity)
+        try:
+            features = features / features.norm(p=2, dim=-1, keepdim=True)
+        except Exception as e:
+            raise RuntimeError("Failed to normalize CLIP text features") from e
+
+        embedding = features[0].tolist()
+
+        if not embedding:
+            raise RuntimeError("Empty text embedding generated")
+
+        return embedding
+
+    except Exception as e:
+        logger.error("Text embedding failed", exc_info=e)
+        raise
+
+
+async def embed_clip_text(text: str) -> List[float]:
+    """
+    Async wrapper for CLIP text embedding.
+
+    Safe to await.
+    Offloads CPU-bound work to thread executor.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError as e:
+        logger.error("embed_clip_text called outside of an event loop", exc_info=e)
+        raise
+
+    try:
+        return await loop.run_in_executor(
+            None,
+            _embed_text_sync,
+            text,
         )
     except Exception:
         # Error already logged in sync function
