@@ -96,6 +96,9 @@ class TextIndex:
             "rolling_context": rolling_context,
             "source": source,
             "timestamp": timestamp or time(),
+            "timestamp_str": datetime.fromtimestamp(timestamp).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),  # human-readable (for UI/debug),
         }
 
         if ref_id:
