@@ -49,8 +49,8 @@ class VLMClient:
             parsed = self._parse_model_sections(output_text)
 
             return {
-                "rich_text": parsed["rich_description"],
-                "clip_text": parsed["clip_description"],
+                "frame_description": parsed["frame_description"],
+                "rolling_context": parsed["rolling_context"],
                 "raw": openai_response,
             }
 
@@ -99,43 +99,43 @@ class VLMClient:
         """
         Parse model output with mandatory sections:
 
-        RICH_DESCRIPTION:
+        FRAME_DESCRIPTION:
         ...
 
-        CLIP_DESCRIPTION:
+        ROLLING_CONTEXT:
         ...
         """
         if not isinstance(text, str):
             raise VLMAnalysisError("model_output_not_text")
 
         rich_match = re.search(
-            r"RICH_DESCRIPTION:\s*(.+?)(?:\n\s*\n|CLIP_DESCRIPTION:)",
+            r"FRAME_DESCRIPTION:\s*(.+?)(?:\n\s*\n|ROLLING_CONTEXT:)",
             text,
             re.DOTALL | re.IGNORECASE,
         )
 
         clip_match = re.search(
-            r"CLIP_DESCRIPTION:\s*(.+)$",
+            r"ROLLING_CONTEXT:\s*(.+)$",
             text,
             re.DOTALL | re.IGNORECASE,
         )
 
         if not rich_match:
-            raise VLMAnalysisError("missing_rich_description")
+            raise VLMAnalysisError("missing_frame_description")
 
         if not clip_match:
-            raise VLMAnalysisError("missing_clip_description")
+            raise VLMAnalysisError("missing_rolling_context")
 
-        rich_text = rich_match.group(1).strip()
-        clip_text = clip_match.group(1).strip()
+        frame_desc = rich_match.group(1).strip()
+        rolling_context = clip_match.group(1).strip()
 
-        if not rich_text:
-            raise VLMAnalysisError("empty_rich_description")
+        if not frame_desc:
+            raise VLMAnalysisError("empty_frame_description")
 
-        if not clip_text:
-            raise VLMAnalysisError("empty_clip_description")
+        if not rolling_context:
+            raise VLMAnalysisError("empty_rolling_context")
 
         return {
-            "rich_description": rich_text,
-            "clip_description": clip_text,
+            "frame_description": frame_desc,
+            "rolling_context": rolling_context,
         }

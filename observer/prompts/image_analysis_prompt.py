@@ -8,7 +8,7 @@ def build_image_analysis_prompt(
     camera_name: str,
     camera_description: str,
     analysis_goal: str,
-    previous_state: Optional[str] = None,
+    previous_rolling_context: Optional[str] = None,
     additional_context: Optional[Dict[str, str]] = None,
 ) -> str:
     """
@@ -17,10 +17,10 @@ def build_image_analysis_prompt(
     The model is instructed to:
     1. Understand the business and camera context
     2. Analyze the new image
-    3. Consider previous state only if relevant
+    3. Use the previous rolling context only if relevant
     4. Return two outputs:
-       - Rich natural language description (LLM-style)
-       - Short, technical, CLIP-oriented description
+       - frame_description: what is happening now
+       - rolling_context: updated ongoing situation summary
     """
 
     context_lines = []
@@ -37,46 +37,47 @@ def build_image_analysis_prompt(
 
     context_block = "\n".join(context_lines)
 
-    previous_state_block = (
-        f"\nPrevious observed state (may be outdated or irrelevant):\n{previous_state}"
-        if previous_state
-        else "\nNo previous state is provided."
+    previous_context_block = (
+        f"\nPrevious rolling context (may be outdated or partially irrelevant):\n{previous_rolling_context}"
+        if previous_rolling_context
+        else "\nNo previous rolling context is provided."
     )
 
     prompt = f"""
 You are an AI visual analyst for a real-world business monitoring system.
 
 Your task is to analyze a newly captured image from a fixed camera inside a business.
-The goal is to understand what is happening in the scene in a way that helps the business owner
-identify meaningful changes, events, or anomalies.
+The goal is to understand what is happening in the scene and to maintain a coherent
+ongoing understanding of the situation over time.
 
 === BUSINESS & CAMERA CONTEXT ===
 {context_block}
 
-=== PREVIOUS STATE ===
-{previous_state_block}
+=== PREVIOUS ROLLING CONTEXT ===
+{previous_context_block}
 
 Important instructions:
-- The previous state is provided only for context. Use it only if it is clearly relevant.
-- Do NOT assume continuity if the image suggests a different situation.
+- The previous rolling context is provided only as background information.
+- Update it only if the new image provides meaningful new information.
+- Do NOT repeat the entire context if nothing has changed.
+- If the scene has clearly shifted, reflect that change in the updated context.
 - Focus on observable facts first, then interpretation.
 
 === IMAGE ANALYSIS TASK ===
 
 Analyze the image and produce TWO outputs:
 
-1. RICH_DESCRIPTION (LLM style):
-   - A clear, natural language description of what is happening in the image.
-   - Include people, actions, interactions, objects, and general atmosphere if relevant.
-   - This text may be several sentences long.
-   - Write as if explaining to a business owner.
+1. FRAME_DESCRIPTION:
+   - Describe what is happening in the current image.
+   - You may rely on the rolling context for continuity if relevant.
+   - Keep it concise and factual.
+   - Write as if reporting the current state to a business owner.
 
-2. CLIP_DESCRIPTION (CLIP-oriented style):
-   - A short, technical, objective description.
-   - Focus on visible elements only.
-   - Use concise noun-phrase style.
-   - Avoid full sentences if possible.
-   - Avoid opinions or business interpretation.
+2. ROLLING_CONTEXT:
+   - Maintain or update an ongoing situation summary.
+   - This should describe the broader state over time, not just this frame.
+   - Update only what has changed or become clearer.
+   - Keep it relatively stable across similar frames.
 
 === CRITICAL SYSTEM INSTRUCTION ===
 
@@ -88,25 +89,24 @@ Do NOT add explanations, greetings, summaries, or any text outside the specified
 Do NOT wrap the output in quotes.
 Do NOT add Markdown.
 If the format is not followed exactly, the response will be considered invalid.
-   
+
 === OUTPUT FORMAT (MANDATORY) ===
 
 Return the result EXACTLY in the following format, with no additional text before or after:
 
-RICH_DESCRIPTION:
+FRAME_DESCRIPTION:
 <text here>
 
-CLIP_DESCRIPTION:
+ROLLING_CONTEXT:
 <text here>
 
 === FORMAT EXAMPLE ===
 
-RICH_DESCRIPTION:
-Two customers are standing near the counter while one employee is handling items behind it.
+FRAME_DESCRIPTION:
+The customer is still standing near the counter while the employee is behind it.
 
-CLIP_DESCRIPTION:
-two people near counter, employee behind counter, shelves in background
-
+ROLLING_CONTEXT:
+A customer has been waiting near the counter for several minutes with intermittent employee presence.
 """
 
     return prompt.strip()

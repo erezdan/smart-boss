@@ -39,6 +39,7 @@ class ImagePipeline:
             qdrant=qdrant_client,
         )
         self.prev_image_embedding: dict[str, list[float]] = {}
+        self.prev_rolling_context: dict[str, str] = {}
         self._vlm = VLMClient(base_url=settings.VLM_BASE_URL)
 
     async def process_snapshot(self, event: SnapshotEvent) -> None:
@@ -97,7 +98,7 @@ class ImagePipeline:
             camera_name="Front Counter",
             camera_description="Facing the cashier and customer waiting area",
             analysis_goal="Detect meaningful changes in customer flow and staff activity",
-            previous_state="One customer waiting at the counter",
+            previous_rolling_context=self.prev_rolling_context.get(event.camera_id, ""),
         )
         analysis = self._vlm.analyze_image(
             image_buffer=image_buffer,
@@ -109,12 +110,14 @@ class ImagePipeline:
             },
         )
 
+        self.prev_rolling_context[event.camera_id] = analysis.get("rolling_context", "")
+
         # 6. No similar image found -> store embedding
         point_id = self._image_index.add(
             embedding=embedding,
             camera_id=event.camera_id,
             timestamp=event.timestamp,
-            clip_text=analysis["clip_text"],
+            frame_description=analysis["frame_description"],
         )
         if not point_id:
             logger.error(
@@ -123,7 +126,7 @@ class ImagePipeline:
 
         # 7. text embedding (async, fire-and-forget)
         try:
-            text_embedding = await embed_text(analysis["rich_text"])
+            text_embedding = await embed_text(analysis["frame_description"])
         except Exception as e:
             logger.error(
                 f"Text embedding failed | camera={event.camera_id}",
@@ -134,7 +137,8 @@ class ImagePipeline:
         if text_embedding:
             self._text_index.add(
                 embedding=text_embedding,
-                text=analysis["rich_text"],
+                frame_description=analysis["frame_description"],
+                rolling_context=analysis["rolling_context"],
                 source="vlm",
                 ref_id=point_id,
                 metadata={
@@ -143,7 +147,8 @@ class ImagePipeline:
                 },
             )
 
-        print(analysis["rich_text"])
+        print("Frame description: " + analysis["frame_description"])
+        print("Rolling context: " + analysis["rolling_context"])
 
     def _frame_to_jpeg(self, frame) -> Optional[bytes]:
         """

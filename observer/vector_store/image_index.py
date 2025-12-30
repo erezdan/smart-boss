@@ -86,7 +86,7 @@ class ImageIndex:
         camera_id: str,
         timestamp: Optional[float] = None,
         metadata: Optional[dict] = None,
-        clip_text: Optional[str] = None,
+        frame_description: Optional[str] = None,
     ) -> Optional[str]:
         """
         Store a new image embedding in the index.
@@ -101,7 +101,7 @@ class ImageIndex:
             "timestamp_str": datetime.fromtimestamp(ts).strftime(
                 "%Y-%m-%d %H:%M:%S"
             ),  # human-readable (for UI/debug)
-            "clip_text": clip_text,
+            "frame_description": frame_description,
         }
 
         if metadata:

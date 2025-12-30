@@ -75,7 +75,8 @@ class TextIndex:
     def add(
         self,
         embedding: List[float],
-        text: str,
+        frame_description: str,
+        rolling_context: str,
         source: str,
         ref_id: Optional[str] = None,
         metadata: Optional[dict] = None,
@@ -85,12 +86,14 @@ class TextIndex:
         Store a text embedding.
 
         Parameters:
-        - text: the original text (stored in payload)
+        - frame_description: the original text (stored in payload)
+        - rolling_context: the rolling context (stored in payload)
         - source: origin of the text (e.g. 'vlm', 'pos')
         - ref_id: optional reference (camera_id, receipt_id, etc.)
         """
         payload = {
-            "text": text,
+            "frame_description": frame_description,
+            "rolling_context": rolling_context,
             "source": source,
             "timestamp": timestamp or time(),
         }
