@@ -13,10 +13,15 @@ pip install torch torchvision torchaudio
 pip install transformers pillow
 pip install qdrant-client
 
-textual model (Cloud, Low-Frequency):
+OpenAI API textual model (Cloud, Low-Frequency):
 ====================================
 text-embedding-3-large
 3072 dimensions
+
+local textual model
+===================
+BAAI/bge-m3
+1024 dimensions
 
 run the virtual environment
 ===========================

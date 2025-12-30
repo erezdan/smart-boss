@@ -19,7 +19,7 @@ class TextIndex:
     """
 
     COLLECTION_NAME = "text_vectors"
-    VECTOR_SIZE = 512  # CLIP text / other text models should match this
+    VECTOR_SIZE = 1024  # CLIP text / other text models should match this
     DISTANCE = Distance.COSINE
 
     def __init__(

@@ -4,9 +4,11 @@ from typing import Optional
 from utils.logger import logger
 from cameras.camera_events import SnapshotEvent
 from embeddings.clip_embeddings import embed_image
+from embeddings.text_embeddings import embed_text
 
 from vector_store.qdrant_wrapper import QdrantClientWrapper
 from vector_store.image_index import ImageIndex
+from vector_store.text_index import TextIndex
 from cloud.vlm_client import VLMClient
 from config import settings
 from prompts.image_analysis_prompt import build_image_analysis_prompt
@@ -32,6 +34,9 @@ class ImagePipeline:
             qdrant=qdrant_client,
             score_threshold=0.85,
             top_k=3,
+        )
+        self._text_index = TextIndex(
+            qdrant=qdrant_client,
         )
         self.prev_image_embedding: dict[str, list[float]] = {}
         self._vlm = VLMClient(base_url=settings.VLM_BASE_URL)
@@ -116,6 +121,29 @@ class ImagePipeline:
                 f"Failed to store new image embedding | camera={event.camera_id}"
             )
 
+        # 7. text embedding (async, fire-and-forget)
+        try:
+            text_embedding = await embed_text(analysis["rich_text"])
+        except Exception as e:
+            logger.error(
+                f"Text embedding failed | camera={event.camera_id}",
+                exc_info=e,
+            )
+        
+        # 8. Store text embedding
+        if text_embedding:
+            self._text_index.add(
+                embedding=text_embedding,
+                text=analysis["rich_text"],
+                source="vlm",
+                ref_id=point_id,
+                metadata={
+                    "camera_id": event.camera_id,
+                    "timestamp": event.timestamp,
+                },
+            )
+
+        print(analysis["rich_text"])
 
     def _frame_to_jpeg(self, frame) -> Optional[bytes]:
         """
