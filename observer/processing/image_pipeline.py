@@ -150,16 +150,37 @@ class ImagePipeline:
         print("Frame description: " + analysis["frame_description"])
         print("Rolling context: " + analysis["rolling_context"])
 
-    def _frame_to_jpeg(self, frame) -> Optional[bytes]:
+    def _frame_to_jpeg(
+        self,
+        frame,
+        max_width: int = 384,
+        jpeg_quality: int = 60,
+    ) -> Optional[bytes]:
         """
-        Convert OpenCV frame (BGR numpy array) to JPEG bytes.
+        Convert OpenCV frame (BGR numpy array) to resized JPEG bytes.
+        Optimized for VLM usage.
         """
         try:
-            success, buffer = cv2.imencode(".jpg", frame)
+            height, width = frame.shape[:2]
+
+            # Resize if needed (keep aspect ratio)
+            if width > max_width:
+                scale = max_width / float(width)
+                new_size = (max_width, int(height * scale))
+                frame = cv2.resize(frame, new_size, interpolation=cv2.INTER_AREA)
+
+            encode_params = [
+                int(cv2.IMWRITE_JPEG_QUALITY),
+                jpeg_quality,
+            ]
+
+            success, buffer = cv2.imencode(".jpg", frame, encode_params)
             if not success:
                 return None
 
-            return buffer.tobytes()
+            image_bytes = buffer.tobytes()
+            #print(f"JPEG bytes being sent: {len(image_bytes)/1024:.1f} KB")
+            return image_bytes
 
         except Exception as e:
             logger.error("Failed to encode frame to JPEG", exc_info=e)

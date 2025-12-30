@@ -33,6 +33,17 @@ class CloudClient:
                 headers=headers or {},
                 timeout=self._timeout,
             )
+
+            data = resp.json()
+            usage = (
+                data
+                .get("result", {})
+                .get("openai_response", {})
+                .get("usage")
+            )
+            if usage:
+                #print(f"Usage: {usage}")
+
         except Exception as e:
             logger.error("Cloud request failed", exc_info=e)
             raise CloudClientError("cloud_request_failed") from e
