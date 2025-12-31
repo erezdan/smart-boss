@@ -1,6 +1,8 @@
 smart boss app deplyment
 ========================
 firebase deploy --only hosting:smartboss-app
+** run it from the toot
+C:\DEV\smart-boss>
 
 API and sevices
 ===============
