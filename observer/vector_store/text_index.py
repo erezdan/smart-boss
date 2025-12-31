@@ -1,5 +1,6 @@
 from typing import List, Optional
 from time import time
+from datetime import datetime
 
 from qdrant_client.models import Distance
 
@@ -85,20 +86,23 @@ class TextIndex:
         """
         Store a text embedding.
 
-        Parameters:
-        - frame_description: the original text (stored in payload)
-        - rolling_context: the rolling context (stored in payload)
-        - source: origin of the text (e.g. 'vlm', 'pos')
-        - ref_id: optional reference (camera_id, receipt_id, etc.)
+            Parameters:
+            - frame_description: the original text (stored in payload)
+            - rolling_context: the rolling context (stored in payload)
+            - source: origin of the text (e.g. 'vlm', 'pos')
+            - ref_id: optional reference (camera_id, receipt_id, etc.)
         """
+
+        ts = timestamp if timestamp is not None else time()
+
         payload = {
             "frame_description": frame_description,
             "rolling_context": rolling_context,
             "source": source,
-            "timestamp": timestamp or time(),
-            "timestamp_str": datetime.fromtimestamp(timestamp).strftime(
+            "timestamp": ts,
+            "timestamp_str": datetime.fromtimestamp(ts).strftime(
                 "%Y-%m-%d %H:%M:%S"
-            ),  # human-readable (for UI/debug),
+            ),  # human-readable
         }
 
         if ref_id:
@@ -112,3 +116,4 @@ class TextIndex:
             vector=embedding,
             payload=payload,
         )
+

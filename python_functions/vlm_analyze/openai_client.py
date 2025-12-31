@@ -50,31 +50,53 @@ def run_llm(
 
 
 def run_vlm(
+    *,
     static_prompt: str,
     dynamic_prompt: str,
-    image_url: str,
     model: str,
+    image_buffer: Optional[str] = None,
+    image_url: Optional[str] = None,
 ):
     client = get_openai_client()
+
+    if image_buffer is not None:
+        image_input = {
+            "type": "input_image",
+            "image_url": f"data:image/jpeg;base64,{image_buffer}",
+        }
+    elif image_url is not None:
+        image_input = {
+            "type": "input_image",
+            "image_url": image_url,
+        }
+    else:
+        raise ValueError("missing_image_source")
 
     response = client.responses.create(
         model=model,
         input=[
             {
                 "role": "system",
-                "content": static_prompt,
-            },
-            {
-                "role": "user",
-                "content": dynamic_prompt,
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": static_prompt,
+                    }
+                ],
             },
             {
                 "role": "user",
                 "content": [
                     {
-                        "type": "input_image",
-                        "image_url": image_url,
+                        "type": "input_text",
+                        "text": dynamic_prompt,
                     }
+                ],
+            },
+            {
+                "role": "user",
+                "content": [
+                    image_input
                 ],
             },
         ],

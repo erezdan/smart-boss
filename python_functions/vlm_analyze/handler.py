@@ -158,12 +158,19 @@ def _validate_request(data: Dict[str, Any]) -> None:
 
     # VLM-specific validation
     if data["mode"] == "vlm":
-        if "image_url" not in data:
-            raise ValidationError("missing_image_url_for_vlm")
+        image_buffer = data.get("image_buffer")
+        image_url = data.get("image_url")
 
-        image_url = data["image_url"]
-        if not isinstance(image_url, str) or not image_url.startswith("http"):
-            raise ValidationError("invalid_image_url_for_vlm")
+        if image_buffer is None and image_url is None:
+            raise ValidationError("missing_image_source_for_vlm")
+
+        if image_buffer is not None:
+            if not isinstance(image_buffer, str) or len(image_buffer) == 0:
+                raise ValidationError("invalid_image_buffer_for_vlm")
+
+        else:
+            if not isinstance(image_url, str) or not image_url.startswith("http"):
+                raise ValidationError("invalid_image_url_for_vlm")
 
 
 def _execute_model(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -182,13 +189,23 @@ def _execute_model(data: Dict[str, Any]) -> Dict[str, Any]:
             )
 
         elif mode == "vlm":
-            image_url = data["image_url"]
-            openai_response = run_vlm(
-                static_prompt=static_prompt,
-                dynamic_prompt=dynamic_prompt,
-                image_url=image_url,
-                model=model,
-            )
+            image_buffer = data.get("image_buffer")
+            image_url = data.get("image_url")
+
+            if image_buffer is not None:
+                openai_response = run_vlm(
+                    static_prompt=static_prompt,
+                    dynamic_prompt=dynamic_prompt,
+                    image_buffer=image_buffer,
+                    model=model,
+                )
+            else:
+                openai_response = run_vlm(
+                    static_prompt=static_prompt,
+                    dynamic_prompt=dynamic_prompt,
+                    image_url=image_url,
+                    model=model,
+                )
 
         else:
             raise ValueError("unsupported_mode")

@@ -15,28 +15,38 @@ class VLMClient:
 
     def analyze_image(
         self,
-        image_url: str,
+        *,
         static_prompt: str,
         dynamic_prompt: str,
         model: str,
+        image_buffer: Optional[bytes] = None,
+        image_url: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Sends image to VLM Cloud Function.
-        Returns raw openai_response dict.
+        Prefers image_buffer; falls back to image_url.
+        Returns parsed VLM result.
         """
         try:
-            if not image_url:
-                raise VLMAnalysisError("empty_image_url")
+            if image_buffer is None and image_url is None:
+                raise VLMAnalysisError("missing_image_source")
+
+            image_base64 = base64.b64encode(image_buffer).decode("utf-8")
 
             payload = {
                 "mode": "vlm",
                 "model": model,
                 "static_prompt": static_prompt,
                 "dynamic_prompt": dynamic_prompt,
-                "image_url": image_url,
                 "metadata": metadata or {},
             }
+
+            # Prefer buffer over URL
+            if image_buffer is not None:
+                payload["image_buffer"] = image_base64
+            else:
+                payload["image_url"] = image_url
 
             resp = self._client.post_json(
                 path="vlm_analyze",

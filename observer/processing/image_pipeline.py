@@ -94,7 +94,7 @@ class ImagePipeline:
             return
         
         # 6. Upload image to Firebase Storage (temp)
-        temp_image_url = self._firebase_storage.upload_temp_image(image_buffer)
+        #temp_image_url = self._firebase_storage.upload_temp_image(image_buffer)
 
         # 7. Analyze the image with VLM
         static_prompt, dynamic_prompt = build_image_analysis_prompt(
@@ -112,7 +112,8 @@ class ImagePipeline:
         #print("DYNAMIC TOKENS:", dynamic_tokens)
         
         analysis = self._vlm.analyze_image(
-            image_url=temp_image_url,
+            image_url=None,
+            image_buffer=image_buffer,
             static_prompt=static_prompt,
             dynamic_prompt=dynamic_prompt,
             model=settings.VLM_MODEL,
@@ -125,8 +126,8 @@ class ImagePipeline:
         self.prev_rolling_context[event.camera_id] = analysis.get("rolling_context", "")
         
         # Clean up temp image
-        if temp_image_url:
-            self._firebase_storage.delete_by_url(temp_image_url)
+        #if temp_image_url:
+            #self._firebase_storage.delete_by_url(temp_image_url)
 
         # 8. No similar image found -> store embedding
         point_id = self._image_index.add(
