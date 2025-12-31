@@ -23,8 +23,7 @@ export const mockMessages = {
       content: "Alert: Danny left his station 3 times in the past hour",
       timestamp: "09:45 AM",
       severity: "medium",
-      image:
-        "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&h=300&fit=crop",
+      image: "/images/mock-images/alert-worker-left.webp",
       expandable: {
         title: "Worker Position Alert",
         details:
@@ -61,8 +60,7 @@ export const mockMessages = {
       subtype: "vision",
       content: "Camera 2 detected: Customer waiting at register for 4 minutes",
       timestamp: "10:15 AM",
-      image:
-        "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400&h=300&fit=crop",
+      image: "/images/mock-images/customer_waiting_at_unattended_register.webp",
       severity: "high",
       expandable: {
         title: "Queue Alert - Register 2",
@@ -107,8 +105,7 @@ export const mockMessages = {
       content: "התראה: דני עזב את העמדה 3 פעמים בשעה האחרונה",
       timestamp: "09:45",
       severity: "medium",
-      image:
-        "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&h=300&fit=crop",
+      image: "/images/mock-images/alert-worker-left.webp",
       expandable: {
         title: "התראת מיקום עובד",
         details:
@@ -145,8 +142,7 @@ export const mockMessages = {
       subtype: "vision",
       content: "מצלמה 2 זיהתה: לקוח ממתין בקופה 4 דקות",
       timestamp: "10:15",
-      image:
-        "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400&h=300&fit=crop",
+      image: "/images/mock-images/customer_waiting_at_unattended_register.webp",
       severity: "high",
       expandable: {
         title: "התראת תור - קופה 2",
@@ -198,7 +194,7 @@ export const drawerData = {
           description: "Customer waiting 4+ minutes",
           time: "10:15 AM",
           image:
-            "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=300&h=200&fit=crop",
+            "/images/mock-images/customer_waiting_at_unattended_register.webp",
         },
         {
           type: "worker",
@@ -206,8 +202,7 @@ export const drawerData = {
           title: "Danny Left Station",
           description: "Away from cashier position",
           time: "09:40 AM",
-          image:
-            "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=300&h=200&fit=crop",
+          image: "/images/mock-images/alert-worker-left.webp",
         },
         {
           type: "suspicious",
@@ -215,8 +210,7 @@ export const drawerData = {
           title: "Unusual Movement in Storage",
           description: "Unidentified person detected",
           time: "08:52 AM",
-          image:
-            "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?w=300&h=200&fit=crop",
+          image: "/images/mock-images/unusual_movment_in_storage.webp",
         },
       ],
     },
@@ -226,22 +220,19 @@ export const drawerData = {
         {
           camera: "Camera 1 - Entrance",
           activity: "12 entries in last hour",
-          snapshot:
-            "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=200&fit=crop",
+          snapshot: "/images/mock-images/camera_1_enterance.jpg",
           patterns: "Normal flow, peak expected soon",
         },
         {
           camera: "Camera 2 - Register Area",
           activity: "3 active customers",
-          snapshot:
-            "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=300&h=200&fit=crop",
+          snapshot: "/images/mock-images/camera_2_register_area.jpg",
           patterns: "Queue forming, assign support",
         },
         {
           camera: "Camera 3 - Storage",
           activity: "Quiet - last activity 45m ago",
-          snapshot:
-            "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?w=300&h=200&fit=crop",
+          snapshot: "/images/mock-images/camera_3_storage.jpg",
           patterns: "Normal - scheduled restocking soon",
         },
       ],
@@ -354,7 +345,7 @@ export const drawerData = {
           description: "לקוח ממתין יותר מ-4 דקות",
           time: "10:15",
           image:
-            "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=300&h=200&fit=crop",
+            "/images/mock-images/customer_waiting_at_unattended_register.webp",
         },
         {
           type: "worker",
@@ -362,8 +353,7 @@ export const drawerData = {
           title: "דני עזב את העמדה",
           description: "רחוק ממיקום הקופה",
           time: "09:40",
-          image:
-            "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=300&h=200&fit=crop",
+          image: "/images/mock-images/alert-worker-left.webp",
         },
         {
           type: "suspicious",
@@ -371,8 +361,7 @@ export const drawerData = {
           title: "תנועה חריגה במחסן",
           description: "אדם לא מזוהה התגלה",
           time: "08:52",
-          image:
-            "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?w=300&h=200&fit=crop",
+          image: "/images/mock-images/unusual_movment_in_storage.webp",
         },
       ],
     },
@@ -382,22 +371,19 @@ export const drawerData = {
         {
           camera: "מצלמה 1 - כניסה",
           activity: "12 כניסות בשעה האחרונה",
-          snapshot:
-            "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=300&h=200&fit=crop",
+          snapshot: "/images/mock-images/camera_1_enterance.jpg",
           patterns: "זרימה רגילה, שיא צפוי בקרוב",
         },
         {
           camera: "מצלמה 2 - אזור קופות",
           activity: "3 לקוחות פעילים",
-          snapshot:
-            "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=300&h=200&fit=crop",
+          snapshot: "/images/mock-images/camera_2_register_area.jpg",
           patterns: "תור נוצר, הקצה תמיכה",
         },
         {
           camera: "מצלמה 3 - מחסן",
           activity: "שקט - פעילות אחרונה לפני 45 דקות",
-          snapshot:
-            "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?w=300&h=200&fit=crop",
+          snapshot: "/images/mock-images/camera_3_storage.jpg",
           patterns: "רגיל - חידוש מלאי מתוכנן בקרוב",
         },
       ],
