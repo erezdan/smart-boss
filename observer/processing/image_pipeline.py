@@ -1,4 +1,5 @@
 import cv2
+import tiktoken
 from typing import Optional
 
 from utils.logger import logger
@@ -96,7 +97,7 @@ class ImagePipeline:
         temp_image_url = self._firebase_storage.upload_temp_image(image_buffer)
 
         # 7. Analyze the image with VLM
-        prompt = build_image_analysis_prompt(
+        static_prompt, dynamic_prompt = build_image_analysis_prompt(
             business_name="Video ABC",
             business_type="Video Store",
             camera_name="Front Counter",
@@ -104,9 +105,16 @@ class ImagePipeline:
             analysis_goal="Detect meaningful changes in customer flow and staff activity",
             previous_rolling_context=self.prev_rolling_context.get(event.camera_id, ""),
         )
+
+        #static_tokens = self.count_tokens(static_prompt)
+        #dynamic_tokens = self.count_tokens(dynamic_prompt)
+        #print("STATIC TOKENS:", static_tokens)
+        #print("DYNAMIC TOKENS:", dynamic_tokens)
+        
         analysis = self._vlm.analyze_image(
-            image_buffer=image_buffer,
-            prompt=prompt,
+            image_url=temp_image_url,
+            static_prompt=static_prompt,
+            dynamic_prompt=dynamic_prompt,
             model=settings.VLM_MODEL,
             metadata={
                 "camera_id": event.camera_id,
@@ -157,6 +165,15 @@ class ImagePipeline:
 
         print("Frame description: " + analysis["frame_description"])
         print("Rolling context: " + analysis["rolling_context"])
+
+    def count_tokens(self, text: str) -> int:
+        try:
+            enc = tiktoken.get_encoding("o200k_base")
+            tokens = enc.encode(text)
+            return len(tokens)
+        except Exception as e:
+            logger.error("tiktoken error:", repr(e))
+            raise
 
     def _frame_to_jpeg(
         self,

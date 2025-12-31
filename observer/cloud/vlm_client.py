@@ -15,8 +15,9 @@ class VLMClient:
 
     def analyze_image(
         self,
-        image_buffer: bytes,
-        prompt: str,
+        image_url: str,
+        static_prompt: str,
+        dynamic_prompt: str,
         model: str,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
@@ -25,16 +26,15 @@ class VLMClient:
         Returns raw openai_response dict.
         """
         try:
-            if not image_buffer:
-                raise VLMAnalysisError("empty_image_buffer")
-
-            image_base64 = base64.b64encode(image_buffer).decode("utf-8")
+            if not image_url:
+                raise VLMAnalysisError("empty_image_url")
 
             payload = {
                 "mode": "vlm",
                 "model": model,
-                "prompt": prompt,
-                "image_base64": image_base64,
+                "static_prompt": static_prompt,
+                "dynamic_prompt": dynamic_prompt,
+                "image_url": image_url,
                 "metadata": metadata or {},
             }
 

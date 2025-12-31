@@ -25,19 +25,9 @@ def get_openai_client() -> OpenAI:
 
     return _client
 
-def run_llm(prompt: str, model: str):
-    client = get_openai_client()
-
-    response = client.responses.create(
-        model=model,
-        input=prompt,
-    )
-
-    return response
-
-def run_vlm(
-    prompt: str,
-    image_base64: str,
+def run_llm(
+    static_prompt: str,
+    dynamic_prompt: str,
     model: str,
 ):
     client = get_openai_client()
@@ -46,19 +36,49 @@ def run_vlm(
         model=model,
         input=[
             {
+                "role": "system",
+                "content": static_prompt,
+            },
+            {
                 "role": "user",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": prompt,
-                    },
-                    {
-                        "type": "input_image",
-                        "image_url": f"data:image/jpeg;base64,{image_base64}",
-                    },
-                ],
-            }
+                "content": dynamic_prompt,
+            },
         ],
     )
 
     return response
+
+
+def run_vlm(
+    static_prompt: str,
+    dynamic_prompt: str,
+    image_url: str,
+    model: str,
+):
+    client = get_openai_client()
+
+    response = client.responses.create(
+        model=model,
+        input=[
+            {
+                "role": "system",
+                "content": static_prompt,
+            },
+            {
+                "role": "user",
+                "content": dynamic_prompt,
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "input_image",
+                        "image_url": image_url,
+                    }
+                ],
+            },
+        ],
+    )
+
+    return response
+

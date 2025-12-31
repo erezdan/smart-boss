@@ -148,32 +148,45 @@ def _parse_request(req) -> Dict[str, Any]:
 
 
 def _validate_request(data: Dict[str, Any]) -> None:
-    for field in ("mode", "model", "prompt"):
+    # Required for all modes
+    for field in ("mode", "model", "static_prompt", "dynamic_prompt"):
         if field not in data:
             raise ValidationError(f"missing_field:{field}")
 
     if data["mode"] not in ("vlm", "llm"):
         raise ValidationError("invalid_mode")
 
-    if data["mode"] == "vlm" and not data.get("image_base64"):
-        raise ValidationError("missing_image_base64_for_vlm")
+    # VLM-specific validation
+    if data["mode"] == "vlm":
+        if "image_url" not in data:
+            raise ValidationError("missing_image_url_for_vlm")
+
+        image_url = data["image_url"]
+        if not isinstance(image_url, str) or not image_url.startswith("http"):
+            raise ValidationError("invalid_image_url_for_vlm")
 
 
 def _execute_model(data: Dict[str, Any]) -> Dict[str, Any]:
     mode = data["mode"]
     model = data["model"]
-    prompt = data["prompt"]
+    static_prompt = data["static_prompt"]
+    dynamic_prompt = data["dynamic_prompt"]
     metadata = data.get("metadata")
-    
+
     try:
         if mode == "llm":
-            openai_response = run_llm(prompt=prompt, model=model)
+            openai_response = run_llm(
+                static_prompt=static_prompt,
+                dynamic_prompt=dynamic_prompt,
+                model=model,
+            )
 
         elif mode == "vlm":
-            image_base64 = data["image_base64"]
+            image_url = data["image_url"]
             openai_response = run_vlm(
-                prompt=prompt,
-                image_base64=image_base64,
+                static_prompt=static_prompt,
+                dynamic_prompt=dynamic_prompt,
+                image_url=image_url,
                 model=model,
             )
 
