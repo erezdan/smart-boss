@@ -12,7 +12,7 @@ from vector_store.text_index import TextIndex
 from cloud.vlm_client import VLMClient
 from config import settings
 from prompts.image_analysis_prompt import build_image_analysis_prompt
-
+from firebase.storage_service import FirebaseStorageService
 
 class ImagePipeline:
     """
@@ -41,6 +41,7 @@ class ImagePipeline:
         self.prev_image_embedding: dict[str, list[float]] = {}
         self.prev_rolling_context: dict[str, str] = {}
         self._vlm = VLMClient(base_url=settings.VLM_BASE_URL)
+        self._firebase_storage = FirebaseStorageService()
 
     async def process_snapshot(self, event: SnapshotEvent) -> None:
         """
@@ -90,8 +91,11 @@ class ImagePipeline:
         if matches:
             # Similar image already exists -> no write, no VLM
             return
+        
+        # 6. Upload image to Firebase Storage (temp)
+        temp_image_url = self._firebase_storage.upload_temp_image(image_buffer)
 
-        # 6. Analyze the image with VLM
+        # 7. Analyze the image with VLM
         prompt = build_image_analysis_prompt(
             business_name="Video ABC",
             business_type="Video Store",
@@ -111,8 +115,12 @@ class ImagePipeline:
         )
 
         self.prev_rolling_context[event.camera_id] = analysis.get("rolling_context", "")
+        
+        # Clean up temp image
+        if temp_image_url:
+            self._firebase_storage.delete_by_url(temp_image_url)
 
-        # 6. No similar image found -> store embedding
+        # 8. No similar image found -> store embedding
         point_id = self._image_index.add(
             embedding=embedding,
             camera_id=event.camera_id,
@@ -124,7 +132,7 @@ class ImagePipeline:
                 f"Failed to store new image embedding | camera={event.camera_id}"
             )
 
-        # 7. text embedding (async, fire-and-forget)
+        # 9. text embedding (async, fire-and-forget)
         try:
             text_embedding = await embed_text(analysis["frame_description"])
         except Exception as e:
@@ -132,8 +140,8 @@ class ImagePipeline:
                 f"Text embedding failed | camera={event.camera_id}",
                 exc_info=e,
             )
-        
-        # 8. Store text embedding
+
+        # 10. Store text embedding
         if text_embedding:
             self._text_index.add(
                 embedding=text_embedding,

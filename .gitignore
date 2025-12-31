@@ -104,3 +104,6 @@ coverage/
 secret.*
 *.pem
 *.key
+
+# Firebase secrets
+**/serviceAccountKey.json

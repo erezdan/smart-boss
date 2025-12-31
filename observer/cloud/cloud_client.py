@@ -41,7 +41,7 @@ class CloudClient:
                 .get("openai_response", {})
                 .get("usage")
             )
-            if usage:
+            #if usage:
                 #print(f"Usage: {usage}")
 
         except Exception as e:
