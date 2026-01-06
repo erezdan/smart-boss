@@ -4,8 +4,8 @@ from typing import Optional
 
 from utils.logger import logger
 from cameras.camera_events import SnapshotEvent
-from embeddings.clip_embeddings import embed_image
-from embeddings.text_embeddings import embed_text
+from embeddings.clip_embeddings import embed_image_async
+from embeddings.text_embeddings import embed_text_sync
 
 from vector_store.qdrant_wrapper import QdrantClientWrapper
 from vector_store.image_index import ImageIndex
@@ -44,7 +44,7 @@ class ImagePipeline:
         self._vlm = VLMClient(base_url=settings.VLM_BASE_URL)
         self._firebase_storage = FirebaseStorageService()
 
-    async def process_snapshot(self, event: SnapshotEvent) -> None:
+    def process_snapshot(self, event: SnapshotEvent) -> None:
         """
         Entry point for image pipeline.
         Must never raise.
@@ -62,7 +62,7 @@ class ImagePipeline:
 
         # 3. Generate CLIP embedding
         try:
-            embedding = await embed_image(image_buffer)
+            embedding = embed_image_async(image_buffer)
         except Exception as e:
             logger.error(
                 f"CLIP embedding failed | camera={event.camera_id}",
@@ -143,7 +143,7 @@ class ImagePipeline:
 
         # 9. text embedding (async, fire-and-forget)
         try:
-            text_embedding = await embed_text(analysis["frame_description"])
+            text_embedding = embed_text_sync(analysis["frame_description"])
         except Exception as e:
             logger.error(
                 f"Text embedding failed | camera={event.camera_id}",

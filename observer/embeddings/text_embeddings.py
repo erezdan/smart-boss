@@ -46,7 +46,7 @@ def _load_text_model():
             raise
 
 
-def _embed_text_sync(text: str) -> List[float]:
+def embed_text_sync(text: str) -> List[float]:
     """
     Synchronous text embedding using BGE-M3.
     CPU-bound. Must never raise silently.
@@ -92,7 +92,7 @@ async def embed_text(text: str) -> List[float]:
     try:
         return await loop.run_in_executor(
             None,
-            _embed_text_sync,
+            embed_text_sync,
             text,
         )
     except Exception:

@@ -7,14 +7,14 @@
       "enabled": true,
 
       "source": {
-        "video_path": "C:\\DEV\\smart-boss\\observer\\cameras\\devtools\\videos\\seller_ignore_the_customer.mp4",
+        "video_path": "C:\\DEV\\smart-boss\\observer\\cameras\\devtools\\videos\\bottle_machine_1.mp4",
         "loop": true,
         "start_paused": false
       },
 
       "snapshot_policy": {
         "mode": "interval",
-        "interval_seconds": 2,
+        "interval_seconds": 0.3,
         "resize_percent": 80
       },
       "dev": {

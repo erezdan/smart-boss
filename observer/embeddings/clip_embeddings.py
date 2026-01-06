@@ -1,6 +1,8 @@
 import io
 import asyncio
 import threading
+import time
+import asyncio
 from typing import List
 
 from PIL import Image
@@ -57,12 +59,14 @@ def _load_clip():
             raise
 
 
-def _embed_image_sync(image_buffer: bytes) -> List[float]:
+def embed_image_sync(image_buffer: bytes) -> List[float]:
     """
     Synchronous CLIP image embedding.
     CPU-bound. Must never raise silently.
     """
     try:
+        start_ts = time.perf_counter()
+
         _load_clip()
 
         if not image_buffer:
@@ -102,6 +106,9 @@ def _embed_image_sync(image_buffer: bytes) -> List[float]:
         logger.error("Image embedding failed", exc_info=e)
         raise
 
+    finally:
+        elapsed_ms = (time.perf_counter() - start_ts) * 1000
+        print(f"CLIP embed_image time: {elapsed_ms:.2f} ms")
 
 async def embed_image(image_buffer: bytes) -> List[float]:
     """
@@ -117,14 +124,17 @@ async def embed_image(image_buffer: bytes) -> List[float]:
         raise
 
     try:
-        return await loop.run_in_executor(
+        result = await loop.run_in_executor(
             None,
-            _embed_image_sync,
+            embed_image_sync,
             image_buffer,
         )
+        return result
+
     except Exception:
         # Error already logged in sync function
         raise
+
 
 def _embed_text_sync(text: str) -> List[float]:
     """

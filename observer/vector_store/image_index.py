@@ -1,5 +1,5 @@
 from typing import List, Optional
-from time import time
+from time import time, perf_counter
 from datetime import datetime
 from typing import List, Optional
 
@@ -8,7 +8,6 @@ from config import settings
 
 from utils.logger import logger
 from vector_store.qdrant_wrapper import QdrantClientWrapper
-
 
 class ImageIndex:
     """
@@ -78,8 +77,8 @@ class ImageIndex:
                 "ImageIndex similarity search failed",
                 exc_info=e,
             )
-            return []
-    
+            return []   
+
     def add(
         self,
         embedding: List[float],
@@ -107,11 +106,18 @@ class ImageIndex:
         if metadata:
             payload.update(metadata)
 
-        return self._qdrant.upsert(
-            collection_name=self.COLLECTION_NAME,
-            vector=embedding,
-            payload=payload,
-        )
+        start_ts = perf_counter()
+        try:
+            result = self._qdrant.upsert(
+                collection_name=self.COLLECTION_NAME,
+                vector=embedding,
+                payload=payload,
+            )
+            return result
+        finally:
+            elapsed_ms = (perf_counter() - start_ts) * 1000
+            print(f"Vector DB upsert time: {elapsed_ms:.2f} ms | camera={camera_id}")
+            
 
 def add_clip_text(
     self,

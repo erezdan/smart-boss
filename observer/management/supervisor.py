@@ -7,7 +7,7 @@ import threading
 from utils.logger import logger
 from cameras.camera_manager import CameraManager
 from processing.image_pipeline import ImagePipeline
-
+from processing.cycle_traning_image_pipeline import CycleTrainingImagePipeline
 
 class Supervisor:
     """
@@ -21,7 +21,8 @@ class Supervisor:
         self.camera_manager = None
         self.qt_app = None
         self._running = False
-        self.image_pipeline = ImagePipeline()
+        #self.image_pipeline = ImagePipeline()
+        self.image_pipeline = CycleTrainingImagePipeline()
         self._loop = None
         self._loop_thread = None
 
@@ -99,15 +100,13 @@ class Supervisor:
     def on_camera_snapshot(self, snapshot_event):
         """
         Entry point for all camera snapshot events.
-        This callback must never raise exceptions.
+        This callback must never raise.
         """
         try:
-            asyncio.run_coroutine_threadsafe(
-                self.image_pipeline.process_snapshot(snapshot_event),
-                self._loop,
-            )
+            self.image_pipeline.process_snapshot(snapshot_event)
         except Exception as e:
-            logger.error("Failed to dispatch snapshot to image pipeline", exc_info=e)
+            logger.error("Snapshot processing failed", exc_info=e)
+
 
     def run_forever(self):
         def handle_signal(signum, frame):

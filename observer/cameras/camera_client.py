@@ -93,29 +93,29 @@ class CameraClient:
                 )
                 return
 
-            interval = self.snapshot_policy.get("interval_seconds", 2)
+            interval_seconds = self.snapshot_policy.get("interval_seconds", 2)
             resize_percent = self.snapshot_policy.get("resize_percent", 100)
 
             logger.log(
                 f"CameraClient '{self.camera_id}' snapshot loop started "
-                f"(interval={interval}s, resize={resize_percent}%)"
+                f"(interval={interval_seconds}s, resize={resize_percent}%)"
             )
 
             while self._running:
+                loop_start = time.perf_counter()
+
                 try:
                     frame = self.camera_source.get_snapshot()
                 except Exception as e:
-                    # Camera source failure: wait and retry
                     logger.error(
                         f"Error retrieving frame from camera '{self.camera_id}'",
                         exc_info=e,
                     )
-                    time.sleep(interval)
+                    time.sleep(interval_seconds)
                     continue
 
                 if frame is None:
-                    # Avoid log flooding on missing frames
-                    time.sleep(interval)
+                    time.sleep(interval_seconds)
                     continue
 
                 processed_frame = frame
@@ -132,12 +132,11 @@ class CameraClient:
                             interpolation=cv2.INTER_AREA,
                         )
                     except Exception as e:
-                        # Skip this frame if resizing fails
                         logger.error(
                             f"Failed to resize frame for camera '{self.camera_id}'",
                             exc_info=e,
                         )
-                        time.sleep(interval)
+                        time.sleep(interval_seconds)
                         continue
 
                 event = SnapshotEvent(
@@ -149,16 +148,19 @@ class CameraClient:
                 try:
                     self.on_snapshot(event)
                 except Exception as e:
-                    # Callback failures must never propagate
                     logger.error(
                         f"Snapshot callback failed for camera '{self.camera_id}'",
                         exc_info=e,
                     )
 
-                time.sleep(interval)
+                # ---- smart sleep: subtract execution time ----
+                elapsed = time.perf_counter() - loop_start
+                sleep_time = interval_seconds - elapsed
+
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
 
         except Exception as e:
-            # Absolute safety net: this thread must never crash silently
             logger.error(
                 f"Fatal error in snapshot loop for camera '{self.camera_id}'",
                 exc_info=e,
