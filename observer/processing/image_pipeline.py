@@ -4,7 +4,7 @@ from typing import Optional
 
 from utils.logger import logger
 from cameras.camera_events import SnapshotEvent
-from embeddings.clip_embeddings import embed_image_async
+from embeddings.clip_embeddings import embed_image_sync
 from embeddings.text_embeddings import embed_text_sync
 
 from vector_store.qdrant_wrapper import QdrantClientWrapper
@@ -62,7 +62,7 @@ class ImagePipeline:
 
         # 3. Generate CLIP embedding
         try:
-            embedding = embed_image_async(image_buffer)
+            embedding = embed_image_sync(image_buffer)
         except Exception as e:
             logger.error(
                 f"CLIP embedding failed | camera={event.camera_id}",
@@ -85,7 +85,7 @@ class ImagePipeline:
             return
 
         # 5. Similarity search (vector db)
-        matches = self._image_index.search_similar(
+        matches = self._image_index.search_similar_last_minute(
             embedding=embedding,
             camera_id=event.camera_id,
         )

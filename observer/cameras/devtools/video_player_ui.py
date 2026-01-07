@@ -75,6 +75,7 @@ class VideoPlayerUI(QWidget):
         layout.addLayout(controls)
 
         self.setLayout(layout)
+        self.pause()
 
     def play(self):
         try:

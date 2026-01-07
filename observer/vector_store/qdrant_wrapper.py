@@ -1,6 +1,7 @@
 from typing import List, Optional
 from uuid import uuid4
 from typing import Any
+from qdrant_client.http.models import Filter, FieldCondition, Range
 
 from utils.logger import logger
 
@@ -127,3 +128,60 @@ class QdrantClientWrapper:
                 exc_info=e,
             )
             return []
+        
+    def scroll(
+        self,
+        collection_name: str,
+        limit: int = 1000,
+        offset=None,
+        with_payload: bool = True,
+    ):
+        return self._client.scroll(
+            collection_name=collection_name,
+            limit=limit,
+            offset=offset,
+            with_payload=with_payload,
+        )
+    
+    def delete_by_filter(
+        self,
+        collection_name: str,
+        filter: dict,
+    ) -> None:
+        """
+        Delete points from a collection using a payload filter.
+        """
+        try:
+            must_conditions = []
+
+            for cond in filter.get("must", []):
+                key = cond.get("key")
+                range_cond = cond.get("range")
+
+                if key and range_cond:
+                    must_conditions.append(
+                        FieldCondition(
+                            key=key,
+                            range=Range(
+                                gte=range_cond.get("gte"),
+                                lte=range_cond.get("lte"),
+                            ),
+                        )
+                    )
+
+            qdrant_filter = Filter(must=must_conditions)
+
+            self._client.delete(
+                collection_name=collection_name,
+                points_selector=qdrant_filter,
+            )
+
+        except Exception as e:
+            logger.error(
+                "Qdrant delete_by_filter failed",
+                exc_info=e,
+            )
+            raise
+
+
+

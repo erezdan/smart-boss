@@ -7,6 +7,7 @@ from typing import List
 
 from PIL import Image
 import torch
+import torch.nn.functional as F
 from transformers import CLIPModel, CLIPProcessor
 
 from utils.logger import logger
@@ -108,7 +109,7 @@ def embed_image_sync(image_buffer: bytes) -> List[float]:
 
     finally:
         elapsed_ms = (time.perf_counter() - start_ts) * 1000
-        print(f"CLIP embed_image time: {elapsed_ms:.2f} ms")
+        #print(f"CLIP embed_image time: {elapsed_ms:.2f} ms")
 
 async def embed_image(image_buffer: bytes) -> List[float]:
     """
@@ -198,3 +199,8 @@ async def embed_clip_text(text: str) -> List[float]:
     except Exception:
         # Error already logged in sync function
         raise
+
+
+def merge_embeddings(v_prev: torch.Tensor, v_curr: torch.Tensor) -> torch.Tensor:
+    merged = (v_prev + v_curr) * 0.5
+    return F.normalize(merged, p=2, dim=-1)

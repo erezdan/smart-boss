@@ -3,9 +3,11 @@
 import cv2
 from typing import Optional
 
+import torch
+
 from utils.logger import logger
 from cameras.camera_events import SnapshotEvent
-from embeddings.clip_embeddings import embed_image_sync
+from embeddings.clip_embeddings import embed_image_sync, merge_embeddings
 from vector_store.qdrant_wrapper import QdrantClientWrapper
 from vector_store.image_index import ImageIndex
 
@@ -16,8 +18,8 @@ class CycleTrainingImagePipeline:
 
     Purpose:
     - Capture dense visual representation of a machine cycle
-    - Store CLIP embeddings into a dedicated vector index
-    - No VLM, no similarity search, minimal gating
+    - Store stabilized CLIP embeddings into a dedicated vector index
+    - No VLM, no runtime similarity search
     """
 
     def __init__(self):
@@ -25,12 +27,23 @@ class CycleTrainingImagePipeline:
 
         self._image_index = ImageIndex(
             qdrant=qdrant_client,
-            #index_name="cycle_training_images",
             score_threshold=None,
             top_k=None,
         )
 
-        self.prev_image_embedding: dict[str, list[float]] = {}
+        # Static per-frame embeddings (anti-freeze gate)
+        self.prev_frame_embedding: dict[str, list[float]] = {}
+
+        # Rolling merged embeddings (stabilized representation)
+        self.rolling_embedding: dict[str, torch.Tensor] = {}
+
+        # Anchor and ingestion counters
+        self._next_anchor_id: int = 1
+        self._ingest_seq: int = 1
+
+        # Training control
+        self._max_training_vectors: int = 5000
+        self._pruned: bool = False
 
     def process_snapshot(self, event: SnapshotEvent) -> None:
         """
@@ -38,45 +51,121 @@ class CycleTrainingImagePipeline:
         Must never raise.
         """
 
+        # Stop training and prune once max size is reached
+        if not self._pruned and self._ingest_seq > self._max_training_vectors:
+            self._image_index.delete_by_ingest_percent(30.0, self._ingest_seq)
+            self._pruned = True
+            self._image_index.print_anchor_distribution()
+            return
+
+        # If already pruned, stop training completely
+        if self._pruned:
+            return
+
+        # Obtain current frame embedding
+        curr_embedding = self._get_curr_embedding(event)
+        if not curr_embedding:
+            return
+
+        # Ultra-high similarity gate (static frame de-duplication)
+        if self._is_similar_to_previous_frame(
+            camera_id=event.camera_id,
+            new_embedding=curr_embedding,
+            threshold=0.99,
+        ):
+            return
+
+        # Update static frame reference
+        self.prev_frame_embedding[event.camera_id] = curr_embedding
+
+        # Rolling merge (stabilized embedding)
+        curr_tensor = torch.tensor(curr_embedding)
+
+        prev_rolling = self.rolling_embedding.get(event.camera_id)
+        if prev_rolling is None:
+            merged_tensor = curr_tensor
+        else:
+            merged_tensor = merge_embeddings(prev_rolling, curr_tensor)
+
+        self.rolling_embedding[event.camera_id] = merged_tensor
+
+        # Determine anchor_id via similarity search
+        anchor_id = None
+
+        threshold = self._get_dynamic_similarity_threshold()
+
+        matches = self._image_index.search_similar(
+            embedding=curr_embedding,
+            camera_id=event.camera_id,
+            top_k=8,
+            score_threshold=threshold,
+        )
+
+        if matches:
+            # Assume best match is the first result
+            best_match = matches[0]
+            anchor_id = best_match.payload.get("anchor_id")
+
+        if anchor_id is None:
+            anchor_id = self._next_anchor_id
+            self._next_anchor_id += 1
+
+        # Assign ingestion sequence number
+        ingest_seq = self._ingest_seq
+        self._ingest_seq += 1
+
+        # Store stabilized embedding with metadata
+        self._image_index.add(
+            embedding=curr_embedding,
+            camera_id=event.camera_id,
+            timestamp=event.timestamp,
+            frame_description=None,
+            metadata={
+                "pipeline": "cycle_training",
+                "camera_id": event.camera_id,
+                "anchor_id": anchor_id,
+                "ingest_seq": ingest_seq,
+            },
+        )
+
+        print(
+            f"Training ingest | camera={event.camera_id} "
+            f"anchor_id={anchor_id} ingest_seq={ingest_seq}"
+        )
+
+    def _get_dynamic_similarity_threshold(self) -> float:
+        base_threshold = 0.975
+        step = 0.005
+        step_size = 500
+        max_threshold = 0.99
+
+        steps = self._ingest_seq // step_size
+        threshold = base_threshold + (steps * step)
+
+        if threshold > max_threshold:
+            threshold = max_threshold
+
+        return threshold
+
+    def _get_curr_embedding(self, event: SnapshotEvent):
         frame = event.frame
         if frame is None:
-            return
+            return None
 
         image_buffer = self._frame_to_jpeg(frame)
         if not image_buffer:
-            return
+            return None
 
         try:
-            embedding = embed_image_sync(image_buffer)
+            curr_embedding = embed_image_sync(image_buffer)
         except Exception as e:
             logger.error(
                 f"CLIP embedding failed | camera={event.camera_id}",
                 exc_info=e,
             )
-            return
-
-        if not embedding:
-            return
-
-        # Optional: ultra-high similarity gate (anti-freeze)
-        if self._is_similar_to_previous_image(
-            camera_id=event.camera_id,
-            new_embedding=embedding,
-            threshold=0.99,
-        ):
-            return
-
-        # Store every accepted frame
-        self._image_index.add(
-            embedding=embedding,
-            camera_id=event.camera_id,
-            timestamp=event.timestamp,
-            frame_description=None,  # training phase – no text
-            metadata={
-                "pipeline": "cycle_training",
-                "camera_id": event.camera_id,
-            },
-        )
+            return None
+        
+        return curr_embedding
 
     def _frame_to_jpeg(
         self,
@@ -109,32 +198,25 @@ class CycleTrainingImagePipeline:
             logger.error("JPEG encoding failed", exc_info=e)
             return None
 
-    def _is_similar_to_previous_image(
+    def _is_similar_to_previous_frame(
         self,
         camera_id: str,
         new_embedding: list[float],
         threshold: float,
     ) -> bool:
         """
-        Extremely high-threshold similarity gate.
+        Extremely high-threshold static similarity gate.
         Used only to skip identical frames.
         """
-
         try:
-            prev = self.prev_image_embedding.get(camera_id)
-
+            prev = self.prev_frame_embedding.get(camera_id)
             if prev is None:
-                self.prev_image_embedding[camera_id] = new_embedding
                 return False
 
             similarity = sum(a * b for a, b in zip(new_embedding, prev))
-
-            if similarity < threshold:
-                self.prev_image_embedding[camera_id] = new_embedding
-                return False
-
-            return True
+            return similarity >= threshold
 
         except Exception:
-            self.prev_image_embedding[camera_id] = new_embedding
             return False
+ 
+
