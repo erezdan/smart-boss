@@ -23,8 +23,8 @@ class Supervisor:
         self.qt_app = None
         self._running = False
         #self.image_pipeline = ImagePipeline()
-        #self.image_pipeline = CycleTrainingImagePipeline()
-        self.image_pipeline = CycleImagePipeline()
+        self.image_pipeline = CycleTrainingImagePipeline()
+        #self.image_pipeline = CycleImagePipeline()
         self._loop = None
         self._loop_thread = None
 

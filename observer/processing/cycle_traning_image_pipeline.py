@@ -2,7 +2,8 @@
 
 import cv2
 from typing import Optional
-
+import os
+from datetime import datetime
 import torch
 
 from utils.logger import logger
@@ -44,6 +45,10 @@ class CycleTrainingImagePipeline:
         # Training control
         self._max_training_vectors: int = 5000
         self._pruned: bool = False
+
+        # Image files path
+        self._image_storage_path: str = "c:/smart-boss-files/images/training/"
+        os.makedirs(self._image_storage_path, exist_ok=True)
 
     def process_snapshot(self, event: SnapshotEvent) -> None:
         """
@@ -113,6 +118,15 @@ class CycleTrainingImagePipeline:
         # Assign ingestion sequence number
         ingest_seq = self._ingest_seq
         self._ingest_seq += 1
+
+        # Save frame image under anchor directory
+        self._save_frame_image(
+            frame=event.frame,
+            camera_id=event.camera_id,
+            anchor_id=anchor_id,
+            ingest_seq=ingest_seq,
+            timestamp=event.timestamp,
+        )
 
         # Store stabilized embedding with metadata
         self._image_index.add(
@@ -218,5 +232,49 @@ class CycleTrainingImagePipeline:
 
         except Exception:
             return False
+        
+
+    def _save_frame_image(
+        self,
+        frame,
+        camera_id: str,
+        anchor_id: int,
+        ingest_seq: int,
+        timestamp,
+    ) -> None:
+        """
+        Save frame image under anchor-specific directory.
+        Never raises.
+        """
+        try:
+            anchor_dir = os.path.join(
+                self._image_storage_path,
+                f"anchor_{anchor_id:04d}"
+            )
+            os.makedirs(anchor_dir, exist_ok=True)
+
+            ts_str = (
+                timestamp.strftime("%Y%m%d_%H%M%S_%f")
+                if isinstance(timestamp, datetime)
+                else str(timestamp)
+            )
+
+            filename = (
+                f"{camera_id}_"
+                f"seq_{ingest_seq:06d}_"
+                f"{ts_str}.jpg"
+            )
+
+            file_path = os.path.join(anchor_dir, filename)
+
+            cv2.imwrite(file_path, frame)
+
+        except Exception as e:
+            logger.error(
+                f"Failed to save training image | "
+                f"anchor_id={anchor_id} ingest_seq={ingest_seq}",
+                exc_info=e,
+            )
+
  
 
