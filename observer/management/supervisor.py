@@ -8,6 +8,7 @@ from utils.logger import logger
 from cameras.camera_manager import CameraManager
 from processing.image_pipeline import ImagePipeline
 from processing.cycle_traning_image_pipeline import CycleTrainingImagePipeline
+from processing.cycle_image_pipeline import CycleImagePipeline
 
 class Supervisor:
     """
@@ -22,7 +23,8 @@ class Supervisor:
         self.qt_app = None
         self._running = False
         #self.image_pipeline = ImagePipeline()
-        self.image_pipeline = CycleTrainingImagePipeline()
+        #self.image_pipeline = CycleTrainingImagePipeline()
+        self.image_pipeline = CycleImagePipeline()
         self._loop = None
         self._loop_thread = None
 
