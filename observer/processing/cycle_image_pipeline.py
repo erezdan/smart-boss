@@ -1,7 +1,11 @@
 # cycle_image_pipeline.py
 
+import os
+from PIL import Image
 import cv2
 from typing import Optional
+
+import numpy as np
 
 from utils.logger import logger
 from cameras.camera_events import SnapshotEvent
@@ -39,6 +43,10 @@ class CycleImagePipeline:
 
         self._anomaly_threshold = anomaly_threshold
         self._static_frame_threshold = static_frame_threshold
+
+        # Anomaly images path
+        self._image_anomaly_path: str = "c:/smart-boss-files/images/anomaly/"
+        os.makedirs(self._image_anomaly_path, exist_ok=True)
 
     def process_snapshot(self, event: SnapshotEvent) -> None:
         """
@@ -128,33 +136,60 @@ class CycleImagePipeline:
             return None
 
     def _frame_to_jpeg(
-        self,
-        frame,
-        max_width: int = 384,
-        jpeg_quality: int = 60,
-    ) -> Optional[bytes]:
-        try:
-            height, width = frame.shape[:2]
+            self,
+            frame,
+            max_width: int = 384,
+            jpeg_quality: int = 60,
+        ) -> Optional[bytes]:
+            """
+            Convert OpenCV frame to lightweight JPEG bytes.
+            """
+            try:
+                image = self.get_anomaly_image()
+                if image is not None:
+                    # Convert PIL Image to OpenCV format
+                    frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
-            if width > max_width:
-                scale = max_width / float(width)
-                new_size = (max_width, int(height * scale))
-                frame = cv2.resize(frame, new_size, interpolation=cv2.INTER_AREA)
+                # Resize applies to BOTH cases
+                height, width = frame.shape[:2]
+                if width > max_width:
+                    scale = max_width / float(width)
+                    new_size = (max_width, int(height * scale))
+                    frame = cv2.resize(frame, new_size, interpolation=cv2.INTER_AREA)
 
-            success, buffer = cv2.imencode(
-                ".jpg",
-                frame,
-                [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality],
-            )
+                success, buffer = cv2.imencode(
+                    ".jpg",
+                    frame,
+                    [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality],
+                )
+                if not success:
+                    return None
 
-            if not success:
+                return buffer.tobytes()
+
+            except Exception as e:
+                logger.error("JPEG encoding failed", exc_info=e)
                 return None
 
-            return buffer.tobytes()
+    def get_anomaly_image(self) -> None:
+        # Find all .jpg files in the directory
+        jpg_files = [
+            f for f in os.listdir(self._image_anomaly_path)
+            if f.lower().endswith(".jpg")
+        ]
 
-        except Exception as e:
-            logger.error("JPEG encoding failed", exc_info=e)
+        if len(jpg_files) == 0:
             return None
+
+        if len(jpg_files) > 1:
+            return None
+
+        # Build full path to the image
+        image_path = os.path.join(self._image_anomaly_path, jpg_files[0])
+
+        # Open and display the image
+        image = Image.open(image_path)
+        return image
 
     def _is_similar_to_previous_frame(
         self,
