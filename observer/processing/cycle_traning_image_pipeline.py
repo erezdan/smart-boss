@@ -43,7 +43,7 @@ class CycleTrainingImagePipeline:
         self._ingest_seq: int = 1
 
         # Training control
-        self._max_training_vectors: int = 5000
+        self._max_training_vectors: int = 2000
         self._pruned: bool = False
 
         # Image files path
@@ -105,11 +105,14 @@ class CycleTrainingImagePipeline:
             top_k=8,
             score_threshold=threshold,
         )
+        
+        score = 0.0
 
         if matches:
             # Assume best match is the first result
             best_match = matches[0]
             anchor_id = best_match.payload.get("anchor_id")
+            score = best_match.score
 
         if anchor_id is None:
             anchor_id = self._next_anchor_id
@@ -144,13 +147,13 @@ class CycleTrainingImagePipeline:
 
         print(
             f"Training ingest | camera={event.camera_id} "
-            f"anchor_id={anchor_id} ingest_seq={ingest_seq}"
+            f"ingest_seq={ingest_seq} anchor_id={anchor_id} score={score:.3f}"
         )
 
     def _get_dynamic_similarity_threshold(self) -> float:
-        base_threshold = 0.975
-        step = 0.005
-        step_size = 500
+        base_threshold = 0.988
+        step = 0.003
+        step_size = 100
         max_threshold = 0.99
 
         steps = self._ingest_seq // step_size

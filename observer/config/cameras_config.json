@@ -7,7 +7,7 @@
       "enabled": true,
 
       "source": {
-        "video_path": "C:\\DEV\\smart-boss\\observer\\cameras\\devtools\\videos\\bottle_machine_1.mp4",
+        "video_path": "C:\\DEV\\smart-boss\\observer\\cameras\\devtools\\videos\\robots.mp4",
         "loop": true,
         "start_paused": false
       },

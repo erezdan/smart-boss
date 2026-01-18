@@ -10,6 +10,10 @@ from processing.image_pipeline import ImagePipeline
 from processing.cycle_traning_image_pipeline import CycleTrainingImagePipeline
 from processing.cycle_image_pipeline import CycleImagePipeline
 
+USE_IMAGE_PIPELINE = False
+USE_CYCLE_TRINING_PIPELINE = False
+USE_CYCLE_PIPELINE = True
+
 class Supervisor:
     """
     Top-level application supervisor.
@@ -22,12 +26,18 @@ class Supervisor:
         self.camera_manager = None
         self.qt_app = None
         self._running = False
-        #self.image_pipeline = ImagePipeline()
-        self.image_pipeline = CycleTrainingImagePipeline()
-        #self.image_pipeline = CycleImagePipeline()
+        self.image_pipeline = self.get_pipeline_object()
         self._loop = None
         self._loop_thread = None
 
+    def get_pipeline_object(self):
+        if USE_IMAGE_PIPELINE:
+            return ImagePipeline()
+        elif USE_CYCLE_TRINING_PIPELINE:
+            return CycleTrainingImagePipeline()
+        elif USE_CYCLE_PIPELINE:
+            return CycleImagePipeline()
+    
     def start(self):
         logger.log("Supervisor starting")
 
