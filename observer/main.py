@@ -2,7 +2,6 @@ import os
 from management.supervisor import Supervisor
 from utils.logger import logger
 from dotenv import load_dotenv
-from vlm.test import test_llm, test_vlm
 
 load_dotenv()
 
@@ -18,9 +17,6 @@ def main():
     logger.log("Application starting")
 
     try:
-
-        #test_vlm()
-
         supervisor = Supervisor(
             cameras_config_path=CONFIG_PATH
         )

@@ -36,3 +36,21 @@ screen recorder
 OBS Studio (installed)
 use ALT to shrink the window
 right click on the screen -> Transform → Fit to Screen
+
+annotation tool - lable Studio
+==============================
+# Install the package
+# into python virtual environment
+pip install -U label-studio
+
+# Launch it!
+label-studio
+
+erezdanmail@gmail.com
+mami12345
+
+annotation tool - fiftyone
+==========================
+pip install fiftyone
+
+run it: python -m fiftyone.app
