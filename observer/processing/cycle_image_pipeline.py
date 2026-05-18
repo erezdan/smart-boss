@@ -3,7 +3,7 @@
 import os
 from PIL import Image
 import cv2
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -12,6 +12,7 @@ from cameras.camera_events import SnapshotEvent
 from embeddings.clip_embeddings import embed_image_sync
 from vector_store.qdrant_wrapper import QdrantClientWrapper
 from vector_store.image_index import ImageIndex
+from websocket.schemas import make_event
 
 
 class CycleImagePipeline:
@@ -29,6 +30,7 @@ class CycleImagePipeline:
         self,
         anomaly_threshold: float = 0.97,
         static_frame_threshold: float = 0.995,
+        event_callback: Optional[Callable[[dict], None]] = None,
     ):
         qdrant_client = QdrantClientWrapper()
 
@@ -43,6 +45,7 @@ class CycleImagePipeline:
 
         self._anomaly_threshold = anomaly_threshold
         self._static_frame_threshold = static_frame_threshold
+        self._event_callback = event_callback
 
         # Anomaly images path
         self._image_anomaly_path: str = "c:/smart-boss-files/images/anomaly/"
@@ -86,15 +89,31 @@ class CycleImagePipeline:
 
         best_match = matches[0]
         similarity = best_match.score
+        anchor_id = best_match.payload.get("anchor_id")
 
-        print(f"Cycle similarity | camera={event.camera_id} anchor_id={best_match.payload.get('anchor_id')} similarity={similarity:.4f}")
+        print(f"Cycle similarity | camera={event.camera_id} anchor_id={anchor_id} similarity={similarity:.4f}")
+
+        self._publish_event(
+            make_event(
+                "prediction",
+                event.camera_id,
+                {
+                    "status": "normal" if similarity >= self._anomaly_threshold else "anomaly",
+                    "similarity": similarity,
+                    "threshold": self._anomaly_threshold,
+                    "anchor_id": anchor_id,
+                    "reason": None if similarity >= self._anomaly_threshold else "similarity_drop",
+                },
+                timestamp=event.timestamp,
+            )
+        )
 
         if similarity < self._anomaly_threshold:
             self._report_anomaly(
                 event,
                 reason="similarity_drop",
                 similarity=similarity,
-                anchor_id=best_match.payload.get("anchor_id"),
+                anchor_id=anchor_id,
             )
 
     def _report_anomaly(
@@ -116,6 +135,28 @@ class CycleImagePipeline:
             f"similarity={similarity:.4f} "
             f"anchor_id={anchor_id}"
         )
+
+        self._publish_event(
+            make_event(
+                "anomaly",
+                event.camera_id,
+                {
+                    "reason": reason,
+                    "similarity": similarity,
+                    "threshold": self._anomaly_threshold,
+                    "anchor_id": anchor_id,
+                    "explanation_status": "not_requested",
+                },
+                timestamp=event.timestamp,
+            )
+        )
+
+    def _publish_event(self, event: dict) -> None:
+        try:
+            if self._event_callback:
+                self._event_callback(event)
+        except Exception as e:
+            logger.error("Failed to publish cycle pipeline event", exc_info=e)
 
     def _get_curr_embedding(self, event: SnapshotEvent):
         frame = event.frame

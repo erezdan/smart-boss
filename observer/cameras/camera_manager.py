@@ -140,6 +140,29 @@ class CameraManager:
                     exc_info=e,
                 )
 
+    def get_camera_source(self, camera_id: str):
+        """
+        Return the camera source for read-only integrations such as streaming.
+        """
+        try:
+            return self._camera_sources.get(camera_id)
+        except Exception as e:
+            logger.error(
+                f"Failed to get camera source '{camera_id}'",
+                exc_info=e,
+            )
+            return None
+
+    def get_camera_sources(self):
+        """
+        Return a shallow copy of active camera sources.
+        """
+        try:
+            return dict(self._camera_sources)
+        except Exception as e:
+            logger.error("Failed to get camera sources", exc_info=e)
+            return {}
+
     def _safe_snapshot_callback(self, snapshot_event):
         """
         Internal safety wrapper for snapshot callbacks.

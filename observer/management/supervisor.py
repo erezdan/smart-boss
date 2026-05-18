@@ -9,6 +9,9 @@ from cameras.camera_manager import CameraManager
 from processing.image_pipeline import ImagePipeline
 from processing.cycle_traning_image_pipeline import CycleTrainingImagePipeline
 from processing.cycle_image_pipeline import CycleImagePipeline
+from websocket.schemas import StreamConfig
+from websocket.server import WebSocketServer
+from config import settings
 
 USE_IMAGE_PIPELINE = False
 USE_CYCLE_TRINING_PIPELINE = False
@@ -29,6 +32,7 @@ class Supervisor:
         self.image_pipeline = self.get_pipeline_object()
         self._loop = None
         self._loop_thread = None
+        self.websocket_server = None
 
     def get_pipeline_object(self):
         if USE_IMAGE_PIPELINE:
@@ -36,7 +40,9 @@ class Supervisor:
         elif USE_CYCLE_TRINING_PIPELINE:
             return CycleTrainingImagePipeline()
         elif USE_CYCLE_PIPELINE:
-            return CycleImagePipeline()
+            return CycleImagePipeline(
+                event_callback=self._publish_pipeline_event,
+            )
     
     def start(self):
         logger.log("Supervisor starting")
@@ -72,6 +78,23 @@ class Supervisor:
             # Qt app (if exists)
             self.qt_app = self.camera_manager._qt_app
 
+            # -------------------------------------------------
+            # 3. Initialize local WebSocket streaming endpoint
+            # -------------------------------------------------
+            if settings.WEBSOCKET_ENABLED:
+                self.websocket_server = WebSocketServer(
+                    camera_manager=self.camera_manager,
+                    loop=self._loop,
+                    config=StreamConfig(
+                        host=settings.WEBSOCKET_HOST,
+                        port=settings.WEBSOCKET_PORT,
+                        default_display_fps=settings.WEBSOCKET_DISPLAY_FPS,
+                        jpeg_quality=settings.WEBSOCKET_JPEG_QUALITY,
+                        max_width=settings.WEBSOCKET_MAX_WIDTH,
+                    ),
+                )
+                self.websocket_server.start_threadsafe()
+
             self._running = True
             logger.log("Supervisor started")
 
@@ -100,6 +123,12 @@ class Supervisor:
         logger.log("Supervisor stopping")
 
         try:
+            if self.websocket_server:
+                self.websocket_server.stop_threadsafe()
+        except Exception as e:
+            logger.error("Error while stopping WebSocketServer", exc_info=e)
+
+        try:
             if self.camera_manager:
                 self.camera_manager.stop()
         except Exception as e:
@@ -108,6 +137,12 @@ class Supervisor:
 
         self._running = False
         logger.log("Supervisor stopped")
+
+        try:
+            if getattr(self, "_loop", None):
+                self._loop.call_soon_threadsafe(self._loop.stop)
+        except Exception as e:
+            logger.error("Error while stopping Supervisor event loop", exc_info=e)
 
     def on_camera_snapshot(self, snapshot_event):
         """
@@ -118,6 +153,17 @@ class Supervisor:
             self.image_pipeline.process_snapshot(snapshot_event)
         except Exception as e:
             logger.error("Snapshot processing failed", exc_info=e)
+
+    def _publish_pipeline_event(self, event):
+        """
+        Thread-safe bridge from processing pipelines to websocket clients.
+        Must never raise.
+        """
+        try:
+            if self.websocket_server:
+                self.websocket_server.publish_event_threadsafe(event)
+        except Exception as e:
+            logger.error("Failed to publish pipeline event", exc_info=e)
 
 
     def run_forever(self):

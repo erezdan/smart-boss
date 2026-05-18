@@ -54,3 +54,15 @@ VECTOR_SIZE = os.getenv("VECTOR_SIZE")
 # ===============================
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
+
+# ===============================
+# WebSocket Streaming
+# ===============================
+
+WEBSOCKET_ENABLED = os.getenv("WEBSOCKET_ENABLED", "true").lower() == "true"
+WEBSOCKET_HOST = os.getenv("WEBSOCKET_HOST", "127.0.0.1")
+WEBSOCKET_PORT = int(os.getenv("WEBSOCKET_PORT", "8765"))
+WEBSOCKET_DISPLAY_FPS = float(os.getenv("WEBSOCKET_DISPLAY_FPS", "6"))
+WEBSOCKET_JPEG_QUALITY = int(os.getenv("WEBSOCKET_JPEG_QUALITY", "60"))
+WEBSOCKET_MAX_WIDTH = int(os.getenv("WEBSOCKET_MAX_WIDTH", "640"))
