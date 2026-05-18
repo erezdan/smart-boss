@@ -18,6 +18,7 @@ class VideoFileCamera:
 
         self._cap = None
         self._last_frame = None
+        self._frame_seq = 0
         self._running = False
 
         self._lock = threading.Lock()
@@ -81,6 +82,10 @@ class VideoFileCamera:
         with self._lock:
             return self._last_frame
 
+    def get_snapshot_with_seq(self):
+        with self._lock:
+            return self._last_frame, self._frame_seq
+
     def _read_loop(self):
         """
         Internal frame reading loop.
@@ -136,6 +141,7 @@ class VideoFileCamera:
 
                 with self._lock:
                     self._last_frame = frame
+                    self._frame_seq += 1
 
                 time.sleep(delay)
 

@@ -30,6 +30,7 @@ class FramePublisher:
         self._connections = connection_manager
         self._config = config
         self._tasks: Dict[str, asyncio.Task] = {}
+        self._last_sent_frame_seq: Dict[str, int] = {}
         self._running = False
 
     def start(self) -> None:
@@ -49,6 +50,7 @@ class FramePublisher:
         for task in self._tasks.values():
             task.cancel()
         self._tasks.clear()
+        self._last_sent_frame_seq.clear()
         logger.log("FramePublisher stopped")
 
     async def _publish_loop(self, camera_id: str) -> None:
@@ -99,13 +101,26 @@ class FramePublisher:
             if camera_source is None:
                 return None
 
-            frame = camera_source.get_snapshot()
+            frame_seq = None
+            if hasattr(camera_source, "get_snapshot_with_seq"):
+                frame, frame_seq = camera_source.get_snapshot_with_seq()
+            else:
+                frame = camera_source.get_snapshot()
+
             if frame is None:
                 return None
+
+            if frame_seq is not None:
+                last_sent_seq = self._last_sent_frame_seq.get(camera_id)
+                if frame_seq == last_sent_seq:
+                    return None
 
             encoded, width, height = self._encode_jpeg(frame)
             if not encoded:
                 return None
+
+            if frame_seq is not None:
+                self._last_sent_frame_seq[camera_id] = frame_seq
 
             return make_event(
                 "frame",
@@ -148,4 +163,3 @@ class FramePublisher:
         except Exception as e:
             logger.error("Failed to encode websocket frame JPEG", exc_info=e)
             return None, 0, 0
-

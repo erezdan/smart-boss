@@ -46,7 +46,7 @@ TEXT_EMBEDDING_MODEL = os.getenv("TEXT_EMBEDDING_MODEL")
 # ===============================
 
 VECTOR_STORE_NAMESPACE = os.getenv("VECTOR_STORE_NAMESPACE")
-VECTOR_SIZE = os.getenv("VECTOR_SIZE")
+VECTOR_SIZE = int(os.getenv("VECTOR_SIZE", "512"))
 
 
 # ===============================
