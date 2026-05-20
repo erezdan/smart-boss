@@ -76,7 +76,7 @@ class CycleImagePipeline:
             embedding=curr_embedding,
             camera_id=event.camera_id,
             top_k=5,
-            score_threshold=None,
+            score_threshold=self._static_frame_threshold,
         )
 
         if not matches:
