@@ -1,6 +1,7 @@
 # cycle_image_pipeline.py
 
 import os
+import re
 from PIL import Image
 import cv2
 from typing import Callable, Optional
@@ -22,6 +23,10 @@ PROMPTS_DIR = os.path.join(BASE_DIR, "prompts")
 ANCHOR_SCENE_CONTEXT_PROMPT_PATH = os.path.join(
     PROMPTS_DIR,
     "cycle_anchor_scene_context.txt",
+)
+ANOMALY_EXPLANATION_PROMPT_PATH = os.path.join(
+    PROMPTS_DIR,
+    "anomaly_explanation_prompt.txt",
 )
 
 
@@ -150,16 +155,25 @@ class CycleImagePipeline:
             f"anchor_id={anchor_id}"
         )
 
+        explanation = self._explain_anomaly(
+            event=event,
+            reason=reason,
+            similarity=similarity,
+            anchor_id=anchor_id,
+        )
+
         self._publish_event(
             make_event(
                 "anomaly",
                 event.camera_id,
                 {
-                    "reason": reason,
+                    "reason": explanation["short_reason"],
+                    "technical_reason": reason,
                     "similarity": similarity,
                     "threshold": self._anomaly_threshold,
                     "anchor_id": anchor_id,
-                    "explanation_status": "not_requested",
+                    "detailed_explanation": explanation["detailed_explanation"],
+                    "explanation_status": explanation["status"],
                 },
                 timestamp=event.timestamp,
             )
@@ -171,6 +185,166 @@ class CycleImagePipeline:
                 self._event_callback(event)
         except Exception as e:
             logger.error("Failed to publish cycle pipeline event", exc_info=e)
+
+    def _explain_anomaly(
+        self,
+        event: SnapshotEvent,
+        reason: str,
+        similarity: float,
+        anchor_id: Optional[int] = None,
+    ) -> dict:
+        fallback = {
+            "short_reason": reason,
+            "detailed_explanation": None,
+            "status": "failed",
+        }
+
+        try:
+            image_buffer = self._frame_to_jpeg(event.frame)
+            if not image_buffer:
+                fallback["status"] = "missing_image"
+                return fallback
+
+            anchor_descriptions = self._load_anchor_descriptions(event.camera_id)
+            if not anchor_descriptions:
+                fallback["status"] = "missing_anchor_descriptions"
+                return fallback
+
+            static_prompt, dynamic_prompt = self._build_anomaly_explanation_prompt(
+                camera_id=event.camera_id,
+                reason=reason,
+                similarity=similarity,
+                anchor_id=anchor_id,
+                anchor_descriptions=anchor_descriptions,
+            )
+
+            analysis = self._vlm.analyze_image(
+                image_url=None,
+                image_buffer=image_buffer,
+                static_prompt=static_prompt,
+                dynamic_prompt=dynamic_prompt,
+                model=settings.VLM_MODEL,
+                metadata={
+                    "camera_id": event.camera_id,
+                    "anchor_id": anchor_id,
+                    "timestamp": event.timestamp,
+                    "technical_reason": reason,
+                    "purpose": "cycle_anomaly_explanation",
+                },
+            )
+
+            short_reason = analysis.get("frame_description", "").strip()
+            detailed_explanation = analysis.get("rolling_context", "").strip()
+            if not short_reason:
+                return fallback
+
+            return {
+                "short_reason": short_reason,
+                "detailed_explanation": detailed_explanation or None,
+                "status": "completed",
+            }
+
+        except Exception as e:
+            logger.error(
+                f"Failed to explain anomaly | "
+                f"camera={event.camera_id} anchor_id={anchor_id}",
+                exc_info=e,
+            )
+            return fallback
+
+    def _build_anomaly_explanation_prompt(
+        self,
+        *,
+        camera_id: str,
+        reason: str,
+        similarity: float,
+        anchor_id: Optional[int],
+        anchor_descriptions: str,
+    ):
+        anomaly_prompt = self._read_text_file(
+            ANOMALY_EXPLANATION_PROMPT_PATH,
+            fallback=(
+                "Compare the current image against the normal anchor "
+                "descriptions and explain the visible anomaly."
+            ),
+        )
+        anomaly_prompt = self._strip_markdown_code_fence(anomaly_prompt)
+        anomaly_prompt = anomaly_prompt.replace(
+            "{{ANCHOR_DESCRIPTIONS}}",
+            anchor_descriptions,
+        )
+
+        static_prompt = """
+            You are generating a machine-readable anomaly report.
+
+            CRITICAL:
+            Your response will be parsed automatically by software.
+
+            You MUST follow the exact output structure defined in the user prompt.
+
+            ADDITIONAL REQUIRED RULES:
+            - You MUST include a section named FRAME_DESCRIPTION.
+            - You MUST include a section named ROLLING_CONTEXT.
+            - The section names are case-sensitive.
+            - Do NOT use Markdown.
+            - Do NOT wrap the response in code blocks.
+
+            FORMAT REQUIREMENTS:
+
+            FRAME_DESCRIPTION:
+            A single short factual sentence summarizing the anomaly.
+
+            ROLLING_CONTEXT:
+            A detailed anomaly analysis using the structure and fields requested in the user prompt.
+
+            The detailed analysis inside ROLLING_CONTEXT may contain:
+            - CLOSEST_ANCHOR_MATCH
+            - VISUAL_DIFFERENCE_SUMMARY
+            - ANOMALY_TYPE
+            - ANOMALY_REGION
+            - ANOMALY_DESCRIPTION
+            - SEVERITY
+            - CONFIDENCE
+
+            The response MUST begin with FRAME_DESCRIPTION.
+            """.strip()
+
+        dynamic_prompt = f"""
+            Camera ID: {camera_id}
+            Technical anomaly reason: {reason}
+            Similarity score: {similarity:.4f}
+            Matched anchor ID, if any: {anchor_id}
+
+            {anomaly_prompt}
+            """.strip()
+
+        return static_prompt, dynamic_prompt
+
+    def _load_anchor_descriptions(self, camera_id: str) -> str:
+        camera_prompt_dir = os.path.join(PROMPTS_DIR, camera_id)
+        if not os.path.isdir(camera_prompt_dir):
+            return ""
+
+        anchor_files = []
+        for filename in os.listdir(camera_prompt_dir):
+            match = re.fullmatch(r"anchor_(\d+)\.txt", filename)
+            if match:
+                anchor_files.append((int(match.group(1)), filename))
+
+        anchor_files.sort(key=lambda item: item[0])
+
+        sections = []
+        for anchor_number, filename in anchor_files:
+            path = os.path.join(camera_prompt_dir, filename)
+            description = self._read_text_file(path)
+            if not description:
+                continue
+
+            sections.append(
+                f"ANCHOR {anchor_number}:\n{description.strip()}"
+            )
+
+        return "\n\n".join(sections)
 
     def _ensure_anchor_description(
         self,
@@ -290,6 +464,18 @@ class CycleImagePipeline:
                 return file.read().strip()
         except FileNotFoundError:
             return fallback
+
+    @staticmethod
+    def _strip_markdown_code_fence(text: str) -> str:
+        stripped = text.strip()
+        match = re.fullmatch(
+            r"```(?:[^\n]*)\n(?P<body>.*)\n```",
+            stripped,
+            re.DOTALL,
+        )
+        if match:
+            return match.group("body").strip()
+        return stripped
 
     @staticmethod
     def _write_anchor_description(path: str, description: str) -> None:

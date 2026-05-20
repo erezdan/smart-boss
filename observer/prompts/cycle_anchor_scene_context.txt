@@ -1,8 +1,9 @@
 This is a fixed industrial robotic production cell observed from a static camera.
 
 The scene contains:
-- a central production tray / carrier
-- multiple orange robotic arms
+- a central production tray / carrier mounted on a mobile platform
+- multiple orange industrial robotic arms positioned around the tray
+- robotic end effectors, grippers, attached tools, and manipulated components
 - a stable industrial environment with fixed structure and lighting
 
 The environment is highly repetitive and visually consistent across frames.
@@ -12,15 +13,30 @@ Small normal variations may include:
 - different operational phases
 - small tray orientation changes
 - expected mechanical motion
+- normal pose variation during manipulation cycles
+- normal occupied or empty gripper states depending on workflow stage
+
+Important visual elements include:
+- robotic arm positions and symmetry
+- robotic end effectors and grippers
+- attached tools and manipulated components
+- tray occupancy and component arrangement
+- expected object presence inside grippers or on the tray
+- occupied vs unexpectedly empty regions
+- stable spatial relationships between robotic elements
 
 Focus on:
 - spatial relationships
 - robotic arm positions
 - tray state and orientation
-- occupied vs empty regions
+- gripper/tool structure and occupancy
+- manipulated object presence
 - visible operational state
+- asymmetry
+- incomplete or visually inconsistent robotic structures
 
 Ignore:
 - generic industrial background details
 - repetitive environmental descriptions
 - assumptions about intent or failure
+- tiny motion differences already represented by normal anchors
