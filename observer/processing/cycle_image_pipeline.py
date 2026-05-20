@@ -7,12 +7,22 @@ from typing import Callable, Optional
 
 import numpy as np
 
+from config import settings
 from utils.logger import logger
 from cameras.camera_events import SnapshotEvent
+from cloud.vlm_client import VLMClient
 from embeddings.clip_embeddings import embed_image_sync
 from vector_store.qdrant_wrapper import QdrantClientWrapper
 from vector_store.image_index import ImageIndex
 from websocket.schemas import make_event
+
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROMPTS_DIR = os.path.join(BASE_DIR, "prompts")
+ANCHOR_SCENE_CONTEXT_PROMPT_PATH = os.path.join(
+    PROMPTS_DIR,
+    "cycle_anchor_scene_context.txt",
+)
 
 
 class CycleImagePipeline:
@@ -46,6 +56,7 @@ class CycleImagePipeline:
         self._anomaly_threshold = anomaly_threshold
         self._static_frame_threshold = static_frame_threshold
         self._event_callback = event_callback
+        self._vlm = VLMClient(base_url=settings.VLM_BASE_URL)
 
         # Anomaly images path
         self._image_anomaly_path: str = "c:/smart-boss-files/images/anomaly/"
@@ -115,6 +126,9 @@ class CycleImagePipeline:
                 similarity=similarity,
                 anchor_id=anchor_id,
             )
+            return
+
+        self._ensure_anchor_description(event, anchor_id)
 
     def _report_anomaly(
         self,
@@ -157,6 +171,133 @@ class CycleImagePipeline:
                 self._event_callback(event)
         except Exception as e:
             logger.error("Failed to publish cycle pipeline event", exc_info=e)
+
+    def _ensure_anchor_description(
+        self,
+        event: SnapshotEvent,
+        anchor_id,
+    ) -> None:
+        try:
+            if anchor_id is None:
+                return
+
+            description_path = self._get_anchor_description_path(
+                camera_id=event.camera_id,
+                anchor_id=anchor_id,
+            )
+
+            if os.path.exists(description_path):
+                return
+
+            image_buffer = self._frame_to_jpeg(event.frame)
+            if not image_buffer:
+                return
+
+            static_prompt, dynamic_prompt = self._build_anchor_description_prompt(
+                camera_id=event.camera_id,
+                anchor_id=anchor_id,
+            )
+
+            analysis = self._vlm.analyze_image(
+                image_url=None,
+                image_buffer=image_buffer,
+                static_prompt=static_prompt,
+                dynamic_prompt=dynamic_prompt,
+                model=settings.VLM_MODEL,
+                metadata={
+                    "camera_id": event.camera_id,
+                    "anchor_id": anchor_id,
+                    "timestamp": event.timestamp,
+                    "purpose": "cycle_anchor_description",
+                },
+            )
+
+            description = analysis.get("frame_description", "").strip()
+            if not description:
+                return
+
+            self._write_anchor_description(description_path, description)
+            logger.log(
+                f"Anchor description created | "
+                f"camera={event.camera_id} anchor_id={anchor_id}"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Failed to ensure anchor description | "
+                f"camera={event.camera_id} anchor_id={anchor_id}",
+                exc_info=e,
+            )
+
+    def _get_anchor_description_path(self, camera_id: str, anchor_id) -> str:
+        camera_prompt_dir = os.path.join(PROMPTS_DIR, camera_id)
+        os.makedirs(camera_prompt_dir, exist_ok=True)
+        return os.path.join(camera_prompt_dir, f"anchor_{anchor_id}.txt")
+
+    def _build_anchor_description_prompt(self, camera_id: str, anchor_id):
+        scene_context = self._read_text_file(
+            ANCHOR_SCENE_CONTEXT_PROMPT_PATH,
+            fallback=(
+                "This is a fixed camera scene. Describe the normal visual "
+                "state represented by the matched anchor."
+            ),
+        )
+
+        static_prompt = """
+            You are an AI visual analyst generating compact visual anchor descriptions.
+
+            Your task:
+            - Describe only the visually important normal state.
+            - Focus on spatial structure, object positions, operational state, and visible relationships.
+            - Avoid generic environmental details unless visually important.
+            - Avoid repetition from the scene context.
+            - Avoid speculation.
+            - Use concise factual language.
+            - The output will later be used for anomaly comparison.
+
+            You MUST produce exactly TWO sections, in this exact order:
+
+            FRAME_DESCRIPTION:
+            A concise description of the specific visual state visible in this frame.
+
+            ROLLING_CONTEXT:
+            A short reusable summary describing the stable visual characteristics of this anchor state.
+
+            Rules:
+            - Keep both sections compact.
+            - Prefer operationally meaningful details over generic scene descriptions.
+            - Do NOT mention image quality, lighting quality, or cleanliness unless visually relevant.
+            - Do NOT add Markdown.
+            - Do NOT add text outside the required sections.
+            """.strip()
+
+        dynamic_prompt = f"""
+            Scene context:
+            {scene_context}
+
+            Camera ID: {camera_id}
+            Anchor ID: {anchor_id}
+
+            Create a textual description for this visual anchor from the provided image.
+            """.strip()
+
+        return static_prompt, dynamic_prompt
+
+    @staticmethod
+    def _read_text_file(path: str, fallback: str = "") -> str:
+        try:
+            with open(path, "r", encoding="utf-8") as file:
+                return file.read().strip()
+        except FileNotFoundError:
+            return fallback
+
+    @staticmethod
+    def _write_anchor_description(path: str, description: str) -> None:
+        temp_path = f"{path}.tmp"
+        with open(temp_path, "w", encoding="utf-8") as file:
+            file.write(description.strip())
+            file.write("\n")
+        os.replace(temp_path, path)
 
     def _get_curr_embedding(self, event: SnapshotEvent):
         frame = event.frame

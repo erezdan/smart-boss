@@ -1,0 +1,26 @@
+This is a fixed industrial robotic production cell observed from a static camera.
+
+The scene contains:
+- a central production tray / carrier
+- multiple orange robotic arms
+- a stable industrial environment with fixed structure and lighting
+
+The environment is highly repetitive and visually consistent across frames.
+
+Small normal variations may include:
+- slight robotic arm movement
+- different operational phases
+- small tray orientation changes
+- expected mechanical motion
+
+Focus on:
+- spatial relationships
+- robotic arm positions
+- tray state and orientation
+- occupied vs empty regions
+- visible operational state
+
+Ignore:
+- generic industrial background details
+- repetitive environmental descriptions
+- assumptions about intent or failure
