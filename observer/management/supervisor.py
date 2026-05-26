@@ -14,8 +14,8 @@ from websocket.server import WebSocketServer
 from config import settings
 
 USE_IMAGE_PIPELINE = False
-USE_CYCLE_TRINING_PIPELINE = False
-USE_CYCLE_PIPELINE = True
+USE_CYCLE_TRINING_PIPELINE = True
+USE_CYCLE_PIPELINE = False
 
 class Supervisor:
     """

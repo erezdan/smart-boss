@@ -240,6 +240,172 @@ class ImageIndex:
         except Exception as e:
             logger.error("Failed to prune vectors by ingest_seq", exc_info=e)
 
+    def delete_anchors_below_average_vector_count(self) -> int:
+        """
+        Delete weak visual anchors and renumber the remaining anchors.
+
+        Only cycle training anchors are considered, so other logical records in
+        the shared image collection are not pruned accidentally.
+
+        Returns:
+            The next available anchor_id after renumbering.
+        """
+
+        next_anchor_id = 1
+
+        try:
+            offset = None
+            anchor_counts: dict[int, int] = {}
+
+            while True:
+                points, offset = self._qdrant.scroll(
+                    collection_name=self.COLLECTION_NAME,
+                    limit=1000,
+                    offset=offset,
+                    with_payload=True,
+                )
+
+                if not points:
+                    break
+
+                for p in points:
+                    payload = p.payload or {}
+
+                    if payload.get("pipeline") != "cycle_training":
+                        continue
+
+                    anchor_id = payload.get("anchor_id")
+                    if anchor_id is None:
+                        continue
+
+                    anchor_counts[anchor_id] = anchor_counts.get(anchor_id, 0) + 1
+
+                if offset is None:
+                    break
+
+            total_anchors = len(anchor_counts)
+            if total_anchors == 0:
+                logger.log("No cycle training anchors found for average pruning")
+                return 1
+
+            next_anchor_id = max(anchor_counts.keys()) + 1
+
+            total_vectors = sum(anchor_counts.values())
+            average = total_vectors / total_anchors
+            anchors_to_delete = [
+                anchor_id
+                for anchor_id, count in anchor_counts.items()
+                if count < average
+            ]
+
+            if anchors_to_delete:
+                logger.log(
+                    f"Deleting anchors below average vector count | "
+                    f"average={average:.2f} anchors={anchors_to_delete}"
+                )
+
+                for anchor_id in anchors_to_delete:
+                    self._qdrant.delete_by_filter(
+                        collection_name=self.COLLECTION_NAME,
+                        filter={
+                            "must": [
+                                {
+                                    "key": "pipeline",
+                                    "match": {
+                                        "value": "cycle_training"
+                                    },
+                                },
+                                {
+                                    "key": "anchor_id",
+                                    "match": {
+                                        "value": anchor_id
+                                    },
+                                },
+                            ]
+                        },
+                    )
+            else:
+                logger.log(
+                    f"No anchors below average vector count | average={average:.2f}"
+                )
+
+            remaining_anchor_points = self._get_cycle_training_anchor_points()
+            if not remaining_anchor_points:
+                logger.log("No cycle training anchors remain after pruning")
+                return 1
+
+            anchor_id_mapping = {
+                old_anchor_id: new_anchor_id
+                for new_anchor_id, old_anchor_id in enumerate(
+                    sorted(remaining_anchor_points.keys()),
+                    start=1,
+                )
+            }
+
+            for old_anchor_id, new_anchor_id in anchor_id_mapping.items():
+                if old_anchor_id == new_anchor_id:
+                    continue
+
+                self._qdrant.set_payload_by_point_ids(
+                    collection_name=self.COLLECTION_NAME,
+                    point_ids=remaining_anchor_points[old_anchor_id],
+                    payload={
+                        "anchor_id": new_anchor_id
+                    },
+                )
+
+            next_anchor_id = max(anchor_id_mapping.values()) + 1
+
+            logger.log(
+                f"Renumbered cycle training anchors | "
+                f"mapping={anchor_id_mapping} next_anchor_id={next_anchor_id}"
+            )
+
+            return next_anchor_id
+
+        except Exception as e:
+            logger.error(
+                "Failed to delete anchors below average vector count",
+                exc_info=e,
+            )
+            return next_anchor_id
+
+    def _get_cycle_training_anchor_points(self) -> dict[int, list]:
+        """
+        Return point ids grouped by cycle training anchor_id.
+        """
+
+        offset = None
+        anchor_points: dict[int, list] = {}
+
+        while True:
+            points, offset = self._qdrant.scroll(
+                collection_name=self.COLLECTION_NAME,
+                limit=1000,
+                offset=offset,
+                with_payload=True,
+            )
+
+            if not points:
+                break
+
+            for p in points:
+                payload = p.payload or {}
+
+                if payload.get("pipeline") != "cycle_training":
+                    continue
+
+                anchor_id = payload.get("anchor_id")
+                if anchor_id is None:
+                    continue
+
+                anchor_points.setdefault(anchor_id, []).append(p.id)
+
+            if offset is None:
+                break
+
+        return anchor_points
+
     def print_anchor_distribution(self) -> None:
         """
         Print anchor_id distribution in the vector index.

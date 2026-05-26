@@ -43,7 +43,7 @@ class CycleTrainingImagePipeline:
         self._ingest_seq: int = 1
 
         # Training control
-        self._max_training_vectors: int = 2000
+        self._max_training_vectors: int = 5000
         self._pruned: bool = False
 
         # Image files path
@@ -57,11 +57,13 @@ class CycleTrainingImagePipeline:
         """
 
         # Stop training and prune once max size is reached
-        if not self._pruned and self._ingest_seq > self._max_training_vectors:
-            self._image_index.delete_by_ingest_percent(30.0, self._ingest_seq)
-            self._pruned = True
-            self._image_index.print_anchor_distribution()
-            return
+        if not self._pruned and self._ingest_seq % 1000 == 0:
+            self._next_anchor_id = (
+                self._image_index.delete_anchors_below_average_vector_count()
+            )
+            self._ingest_seq += 1
+            #self._pruned = True
+            #self._image_index.print_anchor_distribution()
 
         # If already pruned, stop training completely
         if self._pruned:

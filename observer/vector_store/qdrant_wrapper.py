@@ -1,7 +1,7 @@
 from typing import List, Optional
 from uuid import uuid4
 from typing import Any
-from qdrant_client.http.models import Filter, FieldCondition, Range
+from qdrant_client.http.models import Filter, FieldCondition, MatchValue, Range
 
 from utils.logger import logger
 
@@ -143,6 +143,39 @@ class QdrantClientWrapper:
             with_payload=with_payload,
         )
     
+    def set_payload_by_point_ids(
+        self,
+        collection_name: str,
+        point_ids: list,
+        payload: dict,
+    ) -> None:
+        """
+        Update payload fields for specific points.
+        """
+        if not point_ids:
+            return
+
+        try:
+            try:
+                self._client.set_payload(
+                    collection_name=collection_name,
+                    payload=payload,
+                    points=point_ids,
+                )
+            except TypeError:
+                self._client.set_payload(
+                    collection_name=collection_name,
+                    payload=payload,
+                    points_selector=point_ids,
+                )
+
+        except Exception as e:
+            logger.error(
+                "Qdrant set_payload_by_point_ids failed",
+                exc_info=e,
+            )
+            raise
+
     def delete_by_filter(
         self,
         collection_name: str,
@@ -157,6 +190,7 @@ class QdrantClientWrapper:
             for cond in filter.get("must", []):
                 key = cond.get("key")
                 range_cond = cond.get("range")
+                match_cond = cond.get("match")
 
                 if key and range_cond:
                     must_conditions.append(
@@ -166,6 +200,13 @@ class QdrantClientWrapper:
                                 gte=range_cond.get("gte"),
                                 lte=range_cond.get("lte"),
                             ),
+                        )
+                    )
+                elif key and match_cond and "value" in match_cond:
+                    must_conditions.append(
+                        FieldCondition(
+                            key=key,
+                            match=MatchValue(value=match_cond.get("value")),
                         )
                     )
 
